@@ -13,7 +13,7 @@ from textual.message import Message
 from rich.panel import Panel
 from rich.text import Text
 
-from hive.database import get_engine, get_session
+from hive.database import get_engine, get_session, find_project_root
 import hive.crud as crud
 from hive.models import Task
 from hive.utils import get_current_actor, format_priority, format_status, format_datetime
@@ -124,6 +124,21 @@ class HiveTUIApp(App):
         padding-top: 1;
     }
     
+    .memory-list {
+        height: 60%;
+        border: solid #2d2d2d;
+        padding: 1;
+        background: #1e1e1e;
+        overflow-y: scroll;
+    }
+    
+    .memory-form {
+        height: 38%;
+        margin-top: 1;
+        border-top: solid #3c3c3c;
+        padding-top: 1;
+    }
+    
     #feed-log {
         height: 100%;
         background: #1e1e1e;
@@ -168,6 +183,13 @@ class HiveTUIApp(App):
                             yield Input(placeholder="Context/Reasoning...", id="dec-context")
                             yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="dec-text")
                     
+                    with TabPane("Memories"):
+                        yield Static(id="memories-list", classes="memory-list")
+                        with Vertical(classes="memory-form"):
+                            yield Label("[bold]Add/Update Project Memory[/bold]")
+                            yield Input(placeholder="Memory Key...", id="mem-key")
+                            yield Input(placeholder="Memory Value... (Press Enter to save)", id="mem-val")
+                    
                     with TabPane("Activity Feed"):
                         yield RichLog(id="feed-log", highlight=True, markup=True)
         yield Footer()
@@ -185,6 +207,17 @@ class HiveTUIApp(App):
         
         # Save cursor position or selected row if possible
         prev_selected_id = self.selected_task_id
+        
+        # Add a special "none" selection row at the top to deselect/view project details
+        table.add_row(
+            "-",
+            "[bold cyan]🔍 Project Overview (Deselect Task)[/bold cyan]",
+            "-",
+            "-",
+            "-",
+            "-",
+            key="none"
+        )
         
         with get_session() as session:
             tasks = crud.list_tasks(session)
@@ -207,6 +240,12 @@ class HiveTUIApp(App):
                 table.move_cursor(row=table.find_row(str(prev_selected_id)))
             except Exception:
                 pass
+        else:
+            # select project overview row by default
+            try:
+                table.move_cursor(row=table.find_row("none"))
+            except Exception:
+                pass
         
         # Trigger details refresh
         self.update_details_view()
@@ -223,66 +262,135 @@ class HiveTUIApp(App):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         row_key = event.row_key.value
-        if row_key:
+        if row_key == "none":
+            self.selected_task_id = None
+        elif row_key:
             self.selected_task_id = int(row_key)
-            self.update_details_view()
+        self.update_details_view()
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         row_key = event.row_key.value
-        if row_key:
+        if row_key == "none":
+            self.selected_task_id = None
+        elif row_key:
             self.selected_task_id = int(row_key)
-            self.update_details_view()
+        self.update_details_view()
 
     def update_details_view(self) -> None:
         details_box = self.query_one("#details-view", Static)
         comments_box = self.query_one("#comments-list", Static)
         decisions_box = self.query_one("#decisions-list", Static)
+        memories_box = self.query_one("#memories-list", Static)
         
-        if not self.selected_task_id:
-            details_box.update(Panel("No task selected. Select a task on the left or create a new one.", title="Details"))
-            comments_box.update("Select a task to view comments.")
-            decisions_box.update("Select a task to view decisions.")
-            return
-
+        # Always update memories (project-level)
         with get_session() as session:
-            task = crud.get_task(session, self.selected_task_id)
-            if not task:
-                details_box.update(Panel("Selected task not found.", title="Error"))
-                return
+            memories = crud.list_memories(session)
+            memory_lines = []
+            for m in memories:
+                memory_lines.append(f"[bold cyan]{m.key}[/bold cyan]: {m.value} [dim]({format_datetime(m.updated_at)})[/dim]\n---")
+            if not memory_lines:
+                memory_lines.append("No project memories stored yet. Add one below.")
+            memories_box.update("\n".join(memory_lines))
+            
+            if not self.selected_task_id:
+                # No task selected -> show Project Overview in Details
+                root = find_project_root()
+                tasks = crud.list_tasks(session)
+                total_tasks = len(tasks)
+                todo_tasks = sum(1 for t in tasks if t.status == "todo")
+                in_progress_tasks = sum(1 for t in tasks if t.status == "in_progress")
+                review_tasks = sum(1 for t in tasks if t.status == "review")
+                done_tasks = sum(1 for t in tasks if t.status == "done")
                 
-            # Details panel
-            status_theme = {"todo": "grey", "in_progress": "blue", "review": "yellow", "done": "green"}.get(task.status, "white")
-            prio_theme = {0: "red bold", 1: "red", 2: "yellow", 3: "blue", 4: "grey"}.get(task.priority, "white")
-            
-            details_text = Text.assemble(
-                ("Title: ", "bold"), f"{task.title}\n",
-                ("Description: ", "bold"), f"{task.description or 'No description'}\n\n",
-                ("Status: ", "bold"), (format_status(task.status), status_theme), "  |  ",
-                ("Priority: ", "bold"), (format_priority(task.priority), prio_theme), "  |  ",
-                ("Progress: ", "bold"), f"{task.progress}%\n",
-                ("Assignee: ", "bold"), ("@" + task.assignee if task.assignee else "Unassigned", "cyan"), "\n",
-                ("Created: ", "bold"), f"{format_datetime(task.created_at)}\n",
-                ("Updated: ", "bold"), f"{format_datetime(task.updated_at)}"
-            )
-            details_box.update(Panel(details_text, title=f"Task #{task.id}"))
-            
-            # Comments
-            comments = crud.get_comments(session, self.selected_task_id)
-            comment_content = []
-            for c in comments:
-                comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] ({format_datetime(c.created_at)}):\n{c.content}\n---")
-            if not comment_content:
-                comment_content.append("No comments yet. Type below to add one.")
-            comments_box.update("\n".join(comment_content))
-            
-            # Decisions
-            decisions = crud.get_decisions(session, self.selected_task_id)
-            decision_content = []
-            for d in decisions:
-                decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
-            if not decision_content:
-                decision_content.append("No decisions recorded for this task.")
-            decisions_box.update("\n".join(decision_content))
+                decisions = crud.get_decisions(session, task_id=None) # project-level only
+                total_decisions = len(decisions)
+                total_memories = len(memories)
+                
+                details_text = Text.assemble(
+                    ("Project Name: ", "bold"), f"{root.name}\n",
+                    ("Root Path:    ", "bold"), f"{root}\n\n",
+                    ("📊 Project Statistics:\n", "bold blue"),
+                    ("  • Total Tasks:        ", "bold"), f"{total_tasks}\n",
+                    ("  • Todo Tasks:         ", "bold grey"), f" {todo_tasks}\n",
+                    ("  • In Progress Tasks:  ", "bold blue"), f" {in_progress_tasks}\n",
+                    ("  • Review Tasks:       ", "bold yellow"), f" {review_tasks}\n",
+                    ("  • Completed Tasks:    ", "bold green"), f" {done_tasks}\n\n",
+                    ("  • Project Decisions:  ", "bold magenta"), f" {total_decisions}\n",
+                    ("  • Project Memories:   ", "bold cyan"), f" {total_memories}"
+                )
+                details_box.update(Panel(details_text, title="Project Overview"))
+                
+                # Comments panel helper
+                comments_box.update("Select a task on the left to view comment threads.")
+                
+                # Project decisions
+                decision_content = []
+                for d in decisions:
+                    decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
+                if not decision_content:
+                    decision_content.append("No project-level decisions recorded yet.")
+                decisions_box.update("\n".join(decision_content))
+                
+                # Disable task specific details actions
+                self.query_one("#btn-claim", Button).disabled = True
+                self.query_one("#btn-status", Button).disabled = True
+                self.query_one("#btn-complete", Button).disabled = True
+                
+            else:
+                # Task selected -> show Task Details
+                task = crud.get_task(session, self.selected_task_id)
+                if not task:
+                    details_box.update(Panel("Selected task not found.", title="Error"))
+                    return
+                    
+                status_theme = {"todo": "grey", "in_progress": "blue", "review": "yellow", "done": "green"}.get(task.status, "white")
+                prio_theme = {0: "red bold", 1: "red", 2: "yellow", 3: "blue", 4: "grey"}.get(task.priority, "white")
+                
+                details_text = Text.assemble(
+                    ("Title: ", "bold"), f"{task.title}\n",
+                    ("Description: ", "bold"), f"{task.description or 'No description'}\n\n",
+                    ("Status: ", "bold"), (format_status(task.status), status_theme), "  |  ",
+                    ("Priority: ", "bold"), (format_priority(task.priority), prio_theme), "  |  ",
+                    ("Progress: ", "bold"), f"{task.progress}%\n",
+                    ("Assignee: ", "bold"), ("@" + task.assignee if task.assignee else "Unassigned", "cyan"), "\n",
+                    ("Created: ", "bold"), f"{format_datetime(task.created_at)}\n",
+                    ("Updated: ", "bold"), f"{format_datetime(task.updated_at)}"
+                )
+                details_box.update(Panel(details_text, title=f"Task #{task.id}"))
+                
+                # Comments
+                comments = crud.get_comments(session, self.selected_task_id)
+                comment_content = []
+                for c in comments:
+                    comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] ({format_datetime(c.created_at)}):\n{c.content}\n---")
+                if not comment_content:
+                    comment_content.append("No comments yet. Type below to add one.")
+                comments_box.update("\n".join(comment_content))
+                
+                # Decisions: Task-level + Project-level (clearly labeled)
+                task_decisions = crud.get_decisions(session, self.selected_task_id)
+                project_decisions = crud.get_decisions(session, task_id=None)
+                
+                decision_content = []
+                if task_decisions:
+                    decision_content.append("[bold underline green]Task Decisions:[/bold underline green]")
+                    for d in task_decisions:
+                        decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
+                    decision_content.append("")
+                
+                if project_decisions:
+                    decision_content.append("[bold underline blue]Project Level Decisions:[/bold underline blue]")
+                    for d in project_decisions:
+                        decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
+                        
+                if not decision_content:
+                    decision_content.append("No decisions recorded yet.")
+                decisions_box.update("\n".join(decision_content))
+                
+                # Enable action buttons
+                self.query_one("#btn-claim", Button).disabled = False
+                self.query_one("#btn-status", Button).disabled = False
+                self.query_one("#btn-complete", Button).disabled = False
 
     # --- Actions / Keyboard Event Handlers ---
 
@@ -358,9 +466,6 @@ class HiveTUIApp(App):
             self.notify("Added comment.")
             
         elif input_id == "dec-text":
-            if not self.selected_task_id:
-                self.notify("No task selected.")
-                return
             title = self.query_one("#dec-title", Input).value.strip()
             context = self.query_one("#dec-context", Input).value.strip()
             decision = event.value.strip()
@@ -371,7 +476,8 @@ class HiveTUIApp(App):
                 
             actor = get_current_actor()
             with get_session() as session:
-                crud.add_decision(session, self.selected_task_id, title, context, decision, actor)
+                task_id = self.selected_task_id if self.selected_task_id else None
+                crud.add_decision(session, task_id, title, context, decision, actor)
                 
             self.query_one("#dec-title", Input).value = ""
             self.query_one("#dec-context", Input).value = ""
@@ -379,6 +485,23 @@ class HiveTUIApp(App):
             self.update_details_view()
             self.refresh_feed()
             self.notify("Recorded decision.")
+            
+        elif input_id == "mem-val":
+            key = self.query_one("#mem-key", Input).value.strip()
+            value = event.value.strip()
+            
+            if not key or not value:
+                self.notify("Memory Key and Value are required.")
+                return
+                
+            with get_session() as session:
+                crud.add_memory(session, key, value)
+                
+            self.query_one("#mem-key", Input).value = ""
+            event.input.value = ""
+            self.update_details_view()
+            self.refresh_feed()
+            self.notify(f"Memory '{key}' saved successfully.")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id
