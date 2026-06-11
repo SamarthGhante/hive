@@ -24,7 +24,7 @@ from hive.utils import get_current_actor, format_priority, format_status, format
 class HiveTUIApp(App):
     TITLE = "Hive"
     SUBTITLE = None
-    theme = "rose-pine"
+    theme = "catppuccin-mocha"
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("r", "refresh", "Refresh All"),
@@ -42,12 +42,13 @@ class HiveTUIApp(App):
     }
 
     Header {
-        background: $surface;
+        background: $background;
         color: $text;
+        dock: top;
     }
 
     Footer {
-        background: $surface;
+        background: $background;
         color: $text-muted;
     }
 
@@ -75,27 +76,29 @@ class HiveTUIApp(App):
         width: 100%;
     }
 
-    /* Native Tabs navigation bar */
     #nav-tabs {
         width: 100%;
         height: auto;
-        background: $surface;
+        background: $background;
         dock: top;
+        border-bottom: solid $surface;
     }
 
     #nav-tabs Tab {
         color: $text-muted;
-        padding: 0 2;
+        padding: 0 3;
+        background: transparent;
     }
 
     #nav-tabs Tab:hover {
         color: $text;
-        background: $panel;
+        background: transparent;
     }
 
     #nav-tabs Tab.-active {
-        color: $text;
+        color: $primary;
         text-style: bold;
+        background: transparent;
     }
 
     #nav-stats {
@@ -103,16 +106,15 @@ class HiveTUIApp(App):
         color: $text-muted;
         content-align: right middle;
         width: 100%;
-        padding: 0 2;
-        background: $surface;
-        text-style: bold;
+        padding: 0 1;
+        background: $background;
     }
 
     #main-content {
         width: 100%;
         height: 1fr;
         background: $background;
-        padding: 0 1 1 1;
+        padding: 0;
     }
 
     ContentSwitcher {
@@ -131,68 +133,64 @@ class HiveTUIApp(App):
     .left-column {
         width: 45%;
         height: 100%;
-        border: round $panel;
+        border-right: solid $surface;
         padding: 0 1;
-        margin-right: 1;
-        background: $surface;
+        background: $background;
     }
 
     .right-column {
         width: 55%;
         height: 100%;
-        border: round $panel;
         padding: 0 1;
-        margin-left: 1;
-        background: $surface;
+        background: $background;
     }
 
     .section-title {
         text-style: bold;
         color: $text-muted;
+        padding: 0 1;
         margin-bottom: 0;
-        border-bottom: solid $panel;
     }
 
     #task-table {
         height: 1fr;
-        border: round $panel;
         background: $background;
     }
 
     DataTable > .datatable--header {
-        background: $surface;
+        background: $background;
         color: $text-muted;
         text-style: bold;
     }
 
     DataTable > .datatable--cursor {
-        background: $primary 40%;
+        background: $surface;
         color: $text;
         text-style: bold;
     }
 
     DataTable > .datatable--hover {
-        background: $panel;
+        background: $surface 50%;
     }
 
     .form-container {
         height: auto;
-        border-top: solid $panel;
+        border-top: solid $surface;
         margin-top: 0;
         layout: vertical;
-        background: $surface;
+        background: $background;
         padding: 0 1;
     }
 
     Input {
-        background: $background;
-        border: round $panel;
+        background: $surface;
+        border: tall $surface;
         color: $text;
-        margin-bottom: 0;
+        margin: 0 0 1 0;
     }
 
     Input:focus {
-        border: round $primary;
+        border: tall $primary;
     }
 
     TabbedContent {
@@ -201,28 +199,28 @@ class HiveTUIApp(App):
     }
 
     TabbedContent > Tabs {
-        background: $surface;
-        border-bottom: solid $panel;
+        background: $background;
+        border-bottom: solid $surface;
     }
 
     TabbedContent > Tabs > Tab {
         color: $text-muted;
-        text-style: bold;
+        background: transparent;
     }
 
     TabbedContent > Tabs > Tab:hover {
-        background: $panel;
+        background: transparent;
         color: $text;
     }
 
     TabbedContent > Tabs > Tab.--active {
-        color: $text;
-        background: $background;
+        color: $primary;
+        background: transparent;
+        text-style: bold;
     }
 
     .scrollable-pane {
         height: 1fr;
-        border: round $panel;
         padding: 0 1;
         background: $background;
         margin-bottom: 0;
@@ -244,49 +242,48 @@ class HiveTUIApp(App):
         height: 3;
         align: center middle;
         margin-top: 0;
+        border-top: solid $surface;
     }
 
     .action-btn {
         margin: 0 1;
-        min-width: 16;
+        min-width: 14;
         height: 3;
     }
 
     .input-box-pane {
         height: auto;
-        border-top: solid $panel;
-        background: $surface;
+        border-top: solid $surface;
+        background: $background;
         padding: 0 1;
     }
 
     #task-feed-log, #project-feed-log {
         height: 1fr;
         background: $background;
-        border: round $panel;
         padding: 0 1;
     }
 
     Button {
-        background: $panel;
+        background: $surface;
         color: $text;
         border: none;
         height: 3;
     }
 
     Button:hover {
-        background: $primary 40%;
+        background: $panel;
         color: $text;
     }
 
     Button.-active {
         background: $primary;
-        color: $text;
+        color: $background;
     }
 
     #btn-claim {
         background: $surface;
         color: $text-muted;
-        border: round $panel;
     }
 
     #btn-claim:hover {
@@ -297,7 +294,6 @@ class HiveTUIApp(App):
     #btn-status {
         background: $surface;
         color: $text-muted;
-        border: round $panel;
     }
 
     #btn-status:hover {
@@ -306,13 +302,12 @@ class HiveTUIApp(App):
     }
 
     #btn-complete {
-        background: $success 60%;
+        background: $success 30%;
         color: $text;
-        border: round $success;
     }
 
     #btn-complete:hover {
-        background: $success;
+        background: $success 60%;
         color: $text;
     }
     """
@@ -340,9 +335,10 @@ class HiveTUIApp(App):
                             yield Label("Tasks", classes="section-title")
                             yield DataTable(id="task-table")
                             with Vertical(id="new-task-form", classes="form-container"):
-                                yield Label("[bold cyan]Quick Create Task[/bold cyan]")
-                                yield Input(placeholder="Task Title...", id="new-task-title")
-                                yield Input(placeholder="Task Description... (Press Enter to save)", id="new-task-desc")
+                                yield Label("Quick Create")
+                                yield Input(placeholder="Task title...", id="new-task-title")
+                                yield Input(placeholder="Description (Enter to save)", id="new-task-desc")
+
                         
                         # Right Column
                         with Vertical(id="right-pane", classes="right-column"):
@@ -351,25 +347,25 @@ class HiveTUIApp(App):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="details-view")
                                     with Horizontal(id="details-actions"):
-                                        yield Button("Claim Task (c)", id="btn-claim", variant="primary", classes="action-btn")
-                                        yield Button("Cycle Status (s)", id="btn-status", variant="default", classes="action-btn")
-                                        yield Button("Complete Task", id="btn-complete", variant="success", classes="action-btn")
+                                        yield Button("Claim (c)", id="btn-claim", classes="action-btn")
+                                        yield Button("Status (s)", id="btn-status", classes="action-btn")
+                                        yield Button("Complete", id="btn-complete", classes="action-btn")
                                 
                                 with TabPane("Task Comments"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="task-comments-list")
                                     with Vertical(classes="input-box-pane"):
-                                        yield Label("[bold cyan]Add Task Comment:[/bold cyan]")
-                                        yield Input(placeholder="Type comment and press Enter...", id="new-task-comment-input")
+                                        yield Label("Add Comment")
+                                        yield Input(placeholder="Type comment, press Enter...", id="new-task-comment-input")
                                 
                                 with TabPane("Task Decisions"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="task-decisions-list")
                                     with Vertical(classes="input-box-pane"):
-                                        yield Label("[bold cyan]Record Task Decision[/bold cyan]")
-                                        yield Input(placeholder="Decision Title...", id="task-dec-title")
-                                        yield Input(placeholder="Context/Reasoning...", id="task-dec-context")
-                                        yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="task-dec-text")
+                                        yield Label("Record Decision")
+                                        yield Input(placeholder="Title...", id="task-dec-title")
+                                        yield Input(placeholder="Context...", id="task-dec-context")
+                                        yield Input(placeholder="Decision (Enter to save)", id="task-dec-text")
                                 
                                 with TabPane("Task Activity"):
                                     yield RichLog(id="task-feed-log", highlight=True, markup=True)
@@ -382,10 +378,10 @@ class HiveTUIApp(App):
                             with VerticalScroll(classes="scrollable-pane"):
                                 yield Static(id="project-info-view")
                             with Vertical(id="project-update-form", classes="form-container"):
-                                yield Label("[bold cyan]Update Project Info[/bold cyan]")
-                                yield Input(placeholder="Project Name...", id="project-name-input")
-                                yield Input(placeholder="Project Details...", id="project-details-input")
-                                yield Input(placeholder="Overall Idea... (Press Enter to update)", id="project-idea-input")
+                                yield Label("Update Project")
+                                yield Input(placeholder="Name...", id="project-name-input")
+                                yield Input(placeholder="Details...", id="project-details-input")
+                                yield Input(placeholder="Idea (Enter to update)", id="project-idea-input")
                         
                         # Right Column
                         with Vertical(id="project-right-pane", classes="right-column"):
@@ -394,25 +390,25 @@ class HiveTUIApp(App):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="project-comments-list")
                                     with Vertical(classes="input-box-pane"):
-                                        yield Label("[bold cyan]Add Project Comment:[/bold cyan]")
-                                        yield Input(placeholder="Type comment and press Enter...", id="new-project-comment-input")
+                                        yield Label("Add Comment")
+                                        yield Input(placeholder="Type comment, press Enter...", id="new-project-comment-input")
                                 
                                 with TabPane("Project Decisions"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="project-decisions-list")
                                     with Vertical(classes="input-box-pane"):
-                                        yield Label("[bold cyan]Record Project Decision[/bold cyan]")
-                                        yield Input(placeholder="Decision Title...", id="project-dec-title")
-                                        yield Input(placeholder="Context/Reasoning...", id="project-dec-context")
-                                        yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="project-dec-text")
+                                        yield Label("Record Decision")
+                                        yield Input(placeholder="Title...", id="project-dec-title")
+                                        yield Input(placeholder="Context...", id="project-dec-context")
+                                        yield Input(placeholder="Decision (Enter to save)", id="project-dec-text")
                                 
                                 with TabPane("Project Memories"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="project-memories-list")
                                     with Vertical(classes="input-box-pane"):
-                                        yield Label("[bold cyan]Add/Update Project Memory[/bold cyan]")
-                                        yield Input(placeholder="Memory Key...", id="project-mem-key")
-                                        yield Input(placeholder="Memory Value... (Press Enter to save)", id="project-mem-val")
+                                        yield Label("Add Memory")
+                                        yield Input(placeholder="Key...", id="project-mem-key")
+                                        yield Input(placeholder="Value (Enter to save)", id="project-mem-val")
                                         
                                 with TabPane("Project Activity"):
                                     yield RichLog(id="project-feed-log", highlight=True, markup=True)
@@ -449,7 +445,7 @@ class HiveTUIApp(App):
             pass
 
     def on_mount(self) -> None:
-        self.theme = "rose-pine"
+        self.theme = "catppuccin-mocha"
         table = self.query_one("#task-table", DataTable)
         table.cursor_type = "row"
         table.add_columns(
