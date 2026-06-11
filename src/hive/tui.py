@@ -5,8 +5,8 @@ from sqlmodel import Session, select
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.widgets import (
-    Header, Footer, Static, DataTable, TabbedContent, TabPane, 
-    Button, Input, Label, RichLog, ContentSwitcher
+    Header, Footer, Static, DataTable, TabbedContent, TabPane,
+    Button, Input, Label, RichLog, ContentSwitcher, Tabs, Tab
 )
 from textual.reactive import reactive
 from textual.events import Resize
@@ -24,7 +24,7 @@ from hive.utils import get_current_actor, format_priority, format_status, format
 class HiveTUIApp(App):
     TITLE = "Hive"
     SUBTITLE = None
-    theme = "textual-dark"
+    theme = "rose-pine"
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("r", "refresh", "Refresh All"),
@@ -36,116 +36,90 @@ class HiveTUIApp(App):
     ]
 
     CSS = """
-    * {
-        color: #e4e4e7;
-    }
-    
     Screen {
-        background: #18181b;
-        color: #e4e4e7;
+        background: $background;
+        color: $text;
     }
-    
+
     Header {
-        color: #e4e4e7;
-        background: #202023;
+        background: $surface;
+        color: $text;
     }
-    
+
     Footer {
-        color: #a1a1aa;
-        background: #202023;
+        background: $surface;
+        color: $text-muted;
     }
-    
+
     Static {
-        color: #e4e4e7;
+        color: $text;
     }
-    
+
     Label {
-        color: #e4e4e7;
+        color: $text;
     }
-    
+
     DataTable {
-        color: #e4e4e7;
-        background: #18181b;
+        color: $text;
+        background: $background;
     }
-    
+
     RichLog {
-        color: #e4e4e7;
-        background: #18181b;
+        color: $text;
+        background: $background;
     }
-    
+
     #app-container {
         layout: vertical;
         height: 1fr;
         width: 100%;
     }
-    
-    #top-nav {
-        height: 3;
+
+    /* Native Tabs navigation bar */
+    #nav-tabs {
         width: 100%;
-        background: #202023;
-        border-bottom: solid #2e2e33;
-        layout: horizontal;
-        align: left middle;
-        padding: 0 1;
+        height: auto;
+        background: $surface;
+        dock: top;
     }
-    
-    #nav-logo {
-        text-style: bold;
-        color: #a1a1aa;
-        margin-left: 2;
-        margin-right: 1;
-        content-align: center middle;
-        height: 100%;
+
+    #nav-tabs Tab {
+        color: $text-muted;
+        padding: 0 2;
     }
-    
-    #nav-buttons {
-        layout: horizontal;
-        height: 100%;
-        width: auto;
+
+    #nav-tabs Tab:hover {
+        color: $text;
+        background: $panel;
     }
-    
-    .nav-btn {
-        background: transparent;
-        color: #a1a1aa;
-        border: none;
-        height: 100%;
-        margin-right: 1;
-        min-width: 16;
-        padding: 0 1;
-    }
-    
-    .nav-btn:hover {
-        background: transparent;
-        color: #ffffff;
-    }
-    
-    .nav-btn.-active {
-        background: transparent;
-        color: #f4f4f5;
-        border-bottom: solid #6366f1;
+
+    #nav-tabs Tab.-active {
+        color: $text;
         text-style: bold;
     }
-    
+
     #nav-stats {
-        height: 100%;
-        color: #a1a1aa;
+        height: 1;
+        color: $text-muted;
         content-align: right middle;
-        width: 1fr;
+        width: 100%;
+        padding: 0 2;
+        background: $surface;
         text-style: bold;
     }
-    
+
     #main-content {
         width: 100%;
         height: 1fr;
-        background: #18181b;
+        background: $background;
         padding: 0 1 1 1;
     }
-    
+
     ContentSwitcher {
         height: 1fr;
         width: 100%;
     }
-    
+
     .page-container {
         layout: horizontal;
         height: 100%;
@@ -153,186 +127,193 @@ class HiveTUIApp(App):
         padding: 0;
         margin: 0;
     }
-    
+
     .left-column {
         width: 45%;
         height: 100%;
-        border: round #2e2e33;
+        border: round $panel;
         padding: 0 1;
         margin-right: 1;
-        background: #202023;
+        background: $surface;
     }
-    
+
     .right-column {
         width: 55%;
         height: 100%;
-        border: round #2e2e33;
+        border: round $panel;
         padding: 0 1;
         margin-left: 1;
-        background: #202023;
+        background: $surface;
     }
-    
+
     .section-title {
         text-style: bold;
-        color: #a1a1aa;
+        color: $text-muted;
         margin-bottom: 0;
-        border-bottom: solid #2e2e33;
+        border-bottom: solid $panel;
     }
-    
+
     #task-table {
         height: 1fr;
-        border: round #2e2e33;
-        background: #18181b;
+        border: round $panel;
+        background: $background;
     }
-    
+
     DataTable > .datatable--header {
-        background: #202023;
-        color: #a1a1aa;
+        background: $surface;
+        color: $text-muted;
         text-style: bold;
     }
-    
+
     DataTable > .datatable--cursor {
-        background: #2e2e33;
-        color: #ffffff;
+        background: $primary 40%;
+        color: $text;
         text-style: bold;
     }
-    
+
+    DataTable > .datatable--hover {
+        background: $panel;
+    }
+
     .form-container {
         height: auto;
-        border-top: solid #2e2e33;
+        border-top: solid $panel;
         margin-top: 0;
         layout: vertical;
-        background: #202023;
+        background: $surface;
         padding: 0 1;
     }
-    
+
     Input {
-        background: #18181b;
-        border: round #2e2e33;
-        color: #e4e4e7;
+        background: $background;
+        border: round $panel;
+        color: $text;
         margin-bottom: 0;
     }
-    
+
     Input:focus {
-        border: round #3f3f46;
+        border: round $primary;
     }
-    
+
     TabbedContent {
-        background: #18181b;
+        background: $background;
         height: 1fr;
     }
-    
-    Tabs {
-        background: #202023;
-        border-bottom: solid #2e2e33;
+
+    TabbedContent > Tabs {
+        background: $surface;
+        border-bottom: solid $panel;
     }
-    
-    Tab {
-        color: #a1a1aa;
+
+    TabbedContent > Tabs > Tab {
+        color: $text-muted;
         text-style: bold;
     }
-    
-    Tab:hover {
-        background: #2e2e33;
-        color: #a1a1aa;
+
+    TabbedContent > Tabs > Tab:hover {
+        background: $panel;
+        color: $text;
     }
-    
-    Tab.--active {
-        color: #f4f4f5;
-        background: #18181b;
-        border-bottom: solid #6366f1;
+
+    TabbedContent > Tabs > Tab.--active {
+        color: $text;
+        background: $background;
     }
-    
+
     .scrollable-pane {
         height: 1fr;
-        border: round #2e2e33;
+        border: round $panel;
         padding: 0 1;
-        background: #18181b;
+        background: $background;
         margin-bottom: 0;
     }
-    
+
     .scrollable-pane > Static {
         height: auto;
     }
-    
+
     #details-view, #project-info-view {
         padding: 0;
-        background: #18181b;
+        background: $background;
         border: none;
         height: auto;
     }
-    
+
     #details-actions {
         layout: horizontal;
         height: 3;
         align: center middle;
         margin-top: 0;
     }
-    
+
     .action-btn {
         margin: 0 1;
         min-width: 16;
+        height: 3;
     }
-    
+
     .input-box-pane {
         height: auto;
-        border-top: solid #2e2e33;
-        background: #202023;
+        border-top: solid $panel;
+        background: $surface;
         padding: 0 1;
     }
-    
+
     #task-feed-log, #project-feed-log {
         height: 1fr;
-        background: #18181b;
-        border: round #2e2e33;
+        background: $background;
+        border: round $panel;
         padding: 0 1;
     }
-    
+
     Button {
-        background: #2e2e33;
-        color: #e4e4e7;
+        background: $panel;
+        color: $text;
         border: none;
         height: 3;
     }
-    
+
     Button:hover {
-        background: #3f3f46;
+        background: $primary 40%;
+        color: $text;
     }
-    
+
     Button.-active {
-        background: #6366f1;
+        background: $primary;
+        color: $text;
     }
-    
+
     #btn-claim {
-        background: #202023;
-        color: #a1a1aa;
-        border: round #3f3f46;
+        background: $surface;
+        color: $text-muted;
+        border: round $panel;
     }
-    
+
     #btn-claim:hover {
-        background: #2e2e33;
-        color: #ffffff;
+        background: $panel;
+        color: $text;
     }
-    
+
     #btn-status {
-        background: #202023;
-        color: #a1a1aa;
-        border: round #3f3f46;
+        background: $surface;
+        color: $text-muted;
+        border: round $panel;
     }
-    
+
     #btn-status:hover {
-        background: #2e2e33;
-        color: #ffffff;
+        background: $panel;
+        color: $text;
     }
-    
+
     #btn-complete {
-        background: #166534;
-        color: #ffffff;
-        border: round #15803d;
+        background: $success 60%;
+        color: $text;
+        border: round $success;
     }
-    
+
     #btn-complete:hover {
-        background: #15803d;
+        background: $success;
+        color: $text;
     }
     """
 
@@ -341,14 +322,14 @@ class HiveTUIApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="app-container"):
-            # Top Navigation Bar
-            with Horizontal(id="top-nav"):
-                with Horizontal(id="nav-buttons"):
-                    yield Button("Task Board", id="nav-tasks", classes="nav-btn -active")
-                    yield Button("Project Hub", id="nav-project", classes="nav-btn")
-                yield Static(id="nav-stats")
-                yield Label("H I V E", id="nav-logo")
-            
+            # Native Tabs navigation bar
+            yield Tabs(
+                Tab("Task Board", id="tab-tasks"),
+                Tab("Project Hub", id="tab-project"),
+                id="nav-tabs"
+            )
+            yield Static(id="nav-stats")
+
             # Bottom Main Content area
             with Vertical(id="main-content"):
                 with ContentSwitcher(initial="pane-tasks", id="content-switcher"):
@@ -468,7 +449,7 @@ class HiveTUIApp(App):
             pass
 
     def on_mount(self) -> None:
-        self.theme = "textual-dark"
+        self.theme = "rose-pine"
         table = self.query_one("#task-table", DataTable)
         table.cursor_type = "row"
         table.add_columns(
@@ -809,15 +790,22 @@ class HiveTUIApp(App):
 
     def action_switch_to_tasks(self) -> None:
         self.query_one("#content-switcher", ContentSwitcher).current = "pane-tasks"
-        self.query_one("#nav-tasks", Button).add_class("-active")
-        self.query_one("#nav-project", Button).remove_class("-active")
-        self.notify("Switched to Task Board")
+        self.query_one("#nav-tabs", Tabs).active = "tab-tasks"
 
     def action_switch_to_project(self) -> None:
         self.query_one("#content-switcher", ContentSwitcher).current = "pane-project"
-        self.query_one("#nav-project", Button).add_class("-active")
-        self.query_one("#nav-tasks", Button).remove_class("-active")
-        self.notify("Switched to Project Hub")
+        self.query_one("#nav-tabs", Tabs).active = "tab-project"
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        """Handle native Tabs navigation switching."""
+        if event.tabs.id != "nav-tabs":
+            return  # Only handle our top-level nav tabs
+        tab_id = event.tab.id if event.tab else None
+        switcher = self.query_one("#content-switcher", ContentSwitcher)
+        if tab_id == "tab-tasks":
+            switcher.current = "pane-tasks"
+        elif tab_id == "tab-project":
+            switcher.current = "pane-project"
 
     # --- Widget Event Handlers ---
 
@@ -948,12 +936,8 @@ class HiveTUIApp(App):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id
-        
-        if btn_id == "nav-tasks":
-            self.action_switch_to_tasks()
-        elif btn_id == "nav-project":
-            self.action_switch_to_project()
-        elif btn_id == "btn-claim":
+
+        if btn_id == "btn-claim":
             self.action_claim_selected()
         elif btn_id == "btn-status":
             self.action_cycle_status()
