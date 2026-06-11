@@ -1,7 +1,6 @@
-import json
 from datetime import datetime, timezone
 from typing import List, Optional
-from sqlmodel import Session, select, or_
+from sqlmodel import Session, select
 from hive.models import Task, Dependency, Comment, Decision, Memory, Event, Project
 from hive.utils import get_current_actor
 
@@ -97,7 +96,7 @@ def update_task(
         changes.append(f"title: '{task.title}' -> '{title}'")
         task.title = title
     if description is not None and description != task.description:
-        changes.append(f"description changed")
+        changes.append("description changed")
         task.description = description
     if status is not None and status != task.status:
         changes.append(f"status: '{task.status}' -> '{status}'")
@@ -270,8 +269,13 @@ def add_comment(session: Session, task_id: Optional[int], author: str, content: 
     )
     return comment
 
-def get_comments(session: Session, task_id: Optional[int] = None) -> List[Comment]:
-    statement = select(Comment).where(Comment.task_id == task_id).order_by(Comment.created_at.asc())
+def get_comments(session: Session, task_id: Optional[int] = None, project_only: bool = False) -> List[Comment]:
+    statement = select(Comment)
+    if project_only:
+        statement = statement.where(Comment.task_id == None)  # noqa: E711
+    elif task_id is not None:
+        statement = statement.where(Comment.task_id == task_id)
+    statement = statement.order_by(Comment.created_at.asc())
     return session.exec(statement).all()
 
 # --- Decisions ---
@@ -308,7 +312,7 @@ def add_decision(
 def get_decisions(session: Session, task_id: Optional[int] = None, project_only: bool = False) -> List[Decision]:
     statement = select(Decision)
     if project_only:
-        statement = statement.where(Decision.task_id == None)
+        statement = statement.where(Decision.task_id == None)  # noqa: E711
     elif task_id is not None:
         statement = statement.where(Decision.task_id == task_id)
     statement = statement.order_by(Decision.created_at.desc())
@@ -322,7 +326,7 @@ def add_memory(session: Session, key: str, value: str) -> Memory:
     
     actor = get_current_actor()
     if memory:
-        old_value = memory.value
+        # old_value = memory.value  # unused
         memory.value = value
         memory.updated_at = datetime.now(timezone.utc)
         session.add(memory)
@@ -370,7 +374,8 @@ def get_project(session: Session) -> Project:
         project = Project(
             name="My Hive Project",
             details="No project details yet.",
-            overall_idea="No overall idea yet."
+            overall_idea="No overall idea yet.",
+            progress="No progress recorded yet."
         )
         session.add(project)
         session.commit()
@@ -381,7 +386,8 @@ def update_project(
     session: Session,
     name: Optional[str] = None,
     details: Optional[str] = None,
-    overall_idea: Optional[str] = None
+    overall_idea: Optional[str] = None,
+    progress: Optional[str] = None
 ) -> Project:
     project = get_project(session)
     changes = []
@@ -394,6 +400,9 @@ def update_project(
     if overall_idea is not None and overall_idea != project.overall_idea:
         changes.append("overall idea updated")
         project.overall_idea = overall_idea
+    if progress is not None and progress != project.progress:
+        changes.append("progress updated")
+        project.progress = progress
         
     if changes:
         project.updated_at = datetime.now(timezone.utc)

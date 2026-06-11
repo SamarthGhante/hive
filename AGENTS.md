@@ -1,96 +1,101 @@
-# Agent Instructions
+# Agent Instructions: HIVE Workflow & Best Practices
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+## STRICT RULE
+**Do NOT use your built-in task management tools, TODO markdown files, or beads (`bd`)**. You MUST strictly use the **HIVE** CLI tool (`uv run hive` or globally as `hive`) for ALL project management, task tracking, memories, decision logging, and progress reporting.
 
-> **Architecture in one line:** Issues live in a local Dolt database
-> (`.beads/dolt/`); cross-machine sync uses `bd dolt push/pull` (a
-> git-compatible protocol), stored under `refs/dolt/data` on your git
-> remote — separate from `refs/heads/*` where your code lives.
-> `.beads/issues.jsonl` is a passive export, not the wire protocol.
->
-> See [SYNC_CONCEPTS.md](https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md)
-> for the one-screen overview and anti-patterns (don't treat JSONL as the
-> source of truth; don't `bd import` during normal operation; don't
-> reach for third-party Dolt hosting before trying the default).
+---
 
-## Quick Reference
+## 1. Repo Detection & HIVE Quick Start
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>         # Complete work
-bd dolt push          # Push beads data to remote
-```
+Before doing any work on the codebase, you must check if it is a new or existing repository:
+- **How to Detect:** Check if the `.hive` directory exists in the workspace root.
+- **For New Projects (No `.hive` directory):**
+  If the details/scope of the project are not yet clear, ask the user:
+  > "Would you like me to analyze the codebase to learn the project details, or would you prefer to provide the initial details yourself?"
+  
+  Based on their choice:
+  - If they prefer codebase analysis, research the folder structure and files first, then compile the findings.
+  - If they want to provide details, accept their input.
+  
+  Once the details are gathered, initialize HIVE with **detailed, comprehensive information** including the complete idea, specifications, and architecture plan similar to a project document. Keep updating these details regularly as the project evolves.
+  
+  **Setup Example:**
+  ```bash
+  hive setup --name "E-Commerce Gateway" --idea "A microservice handling payments, subscription billing, and invoice generation using Stripe and FastAPI." --details "FastAPI backend, PostgreSQL database, SQLAlchemy ORM, Stripe API (version 2023-10-16), Docker containerization, and unit tests using Pytest."
+  ```
+- **For Existing Projects (`.hive` directory exists):**
+  Always run the `learn` command first to ingest the complete context.
+  ```bash
+  hive learn
+  ```
 
-## Non-Interactive Shell Commands
+---
 
-**ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
+## 2. HIVE Detailed Command Reference
 
-Shell commands like `cp`, `mv`, and `rm` may be aliased to include `-i` (interactive) mode on some systems, causing the agent to hang indefinitely waiting for y/n input.
+### Project Level Commands
+Used to maintain the high-level scope and state of the project.
+- `hive setup --name "..." --details "..." --idea "..."`: Initialize or update project info. Use detailed plans for ideas/details.
+- `hive status "..."`: Update the project's overall progress summary.
+  - **Best Practice:** Run this after *every* major milestone to keep track of the overall completion state.
+- `hive learn`: Dumps all comments, decisions, active tasks, memories, and activity feed. Run this frequently to avoid missing updates.
 
-**Use these forms instead:**
-```bash
-# Force overwrite without prompting
-cp -f source dest           # NOT: cp source dest
-mv -f source dest           # NOT: mv source dest
-rm -f file                  # NOT: rm file
+### Task Management Commands
+Break down work into granular tasks. First establish all tasks and their dependencies before writing code.
+- `hive task-add "Setup Database" --desc "Use SQLite"`: Create a new task.
+- `hive task-list`: List all tasks.
+- `hive task-update <TASK_ID> --claim --progress 50`: Assign a task to yourself, mark it `in_progress`, and set progress to an approximate value.
+  - **Best Practice:** Regularly update task progress to approximate values as you make headway. Keep adding comments to the tasks regularly while working to document intermediate progress.
+- `hive task-update <TASK_ID> --status done --progress 100`: Mark the task as 100% done.
+- `hive task-show <TASK_ID>`: View task dependencies, comments, and decisions.
 
-# For recursive operations
-rm -rf directory            # NOT: rm -r directory
-cp -rf source dest          # NOT: cp -r source dest
-```
+### Dependencies
+Always define the order of execution.
+- `hive dep-add <TASK_ID> <DEPENDS_ON_ID>`: Block `<TASK_ID>` until `<DEPENDS_ON_ID>` is complete.
 
-**Other commands that may prompt:**
-- `scp` - use `-o BatchMode=yes` for non-interactive
-- `ssh` - use `-o BatchMode=yes` to fail instead of prompting
-- `apt-get` - use `-y` flag
-- `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
+### Decisions & Collaboration
+Log all architectural and design decisions so future agents understand *why* something was done.
+- `hive log-decision "Use SQLModel" "Need an ORM" "Selected SQLModel for FastAPI integration" --task <TASK_ID>`: Log a decision specific to a task.
+- `hive log-decision "Architecture" "Monolith vs Microservices" "Monolith"`: Log a project-level decision.
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->
-## Beads Issue Tracker
+### Comments & Progress Updates
+Leave notes for yourself or the next agent.
+- `hive log-comment "Detailed progress report..." --task <TASK_ID>`: Task specific comment.
+  - **CRITICAL RULE:** The comments MUST be detailed. You must add at least one detailed comment per task while closing the task (`--status done`) to summarize exactly what was implemented, changed, or tested under that task.
+- `hive log-comment "Need user feedback on the UI"`: Project level comment.
 
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+### Memories (Preferences & Constraints)
+If the user tells you a preference (e.g., "Always use black for formatting" or "No Tailwind"), record it immediately so it is never forgotten.
+- `hive log-memory "Styling" "Use raw CSS, NO Tailwind"`
+- `hive log-memory "Testing" "Pytest with 90% coverage"`
 
-### Quick Reference
+### Activity Feed
+To see a timeline of what agents and users have done.
+- `hive feed --limit 20`
+- `hive feed --task <TASK_ID>`
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
+---
 
-### Rules
+## 3. The Complete Agent Workflow
 
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+Follow this step-by-step loop for every task:
+1. **Learn:** `hive learn`
+2. **Plan:** Break down goals using `hive task-add` and link them using `hive dep-add`.
+3. **Claim:** Claim the next unblocked task using `hive task-update <TASK_ID> --claim`.
+4. **Execute:** Write code, run tests.
+5. **Update & Comment:** Run `hive task-update <TASK_ID> --progress <approx_val>` halfway through and log progress comments regularly.
+6. **Record:** Use `hive log-decision` or `hive log-memory` if you make an important architectural choice or learn a user preference.
+7. **Complete & Summarize:** Log a **detailed final comment** summarizing all changes made for the task, then mark the task complete: `hive task-update <TASK_ID> --status done --progress 100`.
+8. **Project Sync:** If completing this task represents a major step forward, update the overall project progress: `hive status "Completed backend DB integration"`.
+9. **Repeat:** Move to the next task.
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+---
 
-## Session Completion
+## 4. Error Fallback Handling
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+If you encounter any operational or system error with the HIVE CLI or its database during execution:
+1. Log the error details in the agent transcript/output.
+2. Ask the user explicitly:
+   > "HIVE encountered an error: [Error details]. Would you like to retry the operation or continue working without HIVE tracking?"
+3. Proceed according to the user's choice.
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-<!-- END BEADS INTEGRATION -->

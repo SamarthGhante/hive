@@ -1,10 +1,8 @@
 import asyncio
-from datetime import datetime
 from typing import Optional, List, Tuple
 
-from sqlmodel import Session, select
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import (
     Header, Footer, Static, DataTable, TabbedContent, TabPane,
     Button, Input, Label, RichLog, ContentSwitcher, Tabs, Tab
@@ -22,7 +20,7 @@ from hive.models import Task, Project, Event, Comment, Decision, Memory
 from hive.utils import get_current_actor, format_priority, format_status, format_datetime
 
 class HiveTUIApp(App):
-    TITLE = "Hive"
+    TITLE = "HIVE"
     SUBTITLE = "Collaborative Project Coordination Engine"
     
     BINDINGS = [
@@ -54,23 +52,6 @@ class HiveTUIApp(App):
         color: $primary;
     }
 
-    Header {
-        background: $surface;
-        color: $primary;
-        text-style: bold;
-        height: 1;
-        border-bottom: solid $border;
-        text-align: center;
-        dock: top;
-    }
-
-    Footer {
-        background: $surface;
-        color: $secondary;
-        height: 1;
-        border-top: solid $border;
-        dock: bottom;
-    }
 
     #nav-tabs {
         width: 100%;
@@ -350,7 +331,8 @@ class HiveTUIApp(App):
                                 yield Label("Update Project Info", classes="form-label")
                                 yield Input(placeholder="Project Name (Enter to details)...", id="project-name-input")
                                 yield Input(placeholder="Details (Enter to overall idea)...", id="project-details-input")
-                                yield Input(placeholder="Overall Idea (Enter to save)...", id="project-idea-input")
+                                yield Input(placeholder="Overall Idea (Enter to progress)...", id="project-idea-input")
+                                yield Input(placeholder="Progress Summary (Enter to save)...", id="project-progress-input")
                         
                         # Right Column
                         with Vertical(id="project-right-pane", classes="right-column"):
@@ -445,9 +427,9 @@ class HiveTUIApp(App):
         with get_session() as session:
             crud.add_memory(session, key, value)
 
-    def _db_update_project(self, name: Optional[str], details: Optional[str], overall_idea: Optional[str]) -> None:
+    def _db_update_project(self, name: Optional[str], details: Optional[str], overall_idea: Optional[str], progress: Optional[str]) -> None:
         with get_session() as session:
-            crud.update_project(session, name=name, details=details, overall_idea=overall_idea)
+            crud.update_project(session, name=name, details=details, overall_idea=overall_idea, progress=progress)
 
     # --- UI rendering / Reactive sync ---
 
@@ -559,6 +541,7 @@ class HiveTUIApp(App):
 
         details_content = project.details or "No details provided."
         idea_content = project.overall_idea or "No overall idea recorded."
+        progress_content = project.progress or "No progress recorded yet."
 
         stats_table = Table.grid(padding=(0, 2))
         stats_table.add_column(style="bold #a1a1aa")
@@ -581,6 +564,8 @@ class HiveTUIApp(App):
             Text(f"\n{details_content}\n", style="#e4e4e7"),
             Rule("Overall Idea", style="#2c2c2e"),
             Text(f"\n{idea_content}\n", style="#e4e4e7"),
+            Rule("Progress", style="#2c2c2e"),
+            Text(f"\n{progress_content}\n", style="#e4e4e7"),
             Rule("Metrics", style="#2c2c2e"),
             Text("\n"),
             Panel(stats_table, title="Task Statistics", border_style="#2c2c2e")
@@ -595,8 +580,11 @@ class HiveTUIApp(App):
             name_input.value = project.name
         if not details_input.value:
             details_input.value = project.details or ""
+        progress_input = self.query_one("#project-progress-input", Input)
         if not idea_input.value:
             idea_input.value = project.overall_idea or ""
+        if not progress_input.value:
+            progress_input.value = project.progress or ""
 
         comment_content = []
         for c in comments:
@@ -908,9 +896,13 @@ class HiveTUIApp(App):
             if val:
                 self.query_one("#project-idea-input", Input).focus()
         elif input_id == "project-idea-input":
+            if val:
+                self.query_one("#project-progress-input", Input).focus()
+        elif input_id == "project-progress-input":
             name = self.query_one("#project-name-input", Input).value.strip()
             details = self.query_one("#project-details-input", Input).value.strip()
-            self.run_worker(self.async_update_project(name, details, val), group="db_sync")
+            idea = self.query_one("#project-idea-input", Input).value.strip()
+            self.run_worker(self.async_update_project(name, details, idea, val), group="db_sync")
             self.query_one("#project-name-input", Input).focus()
             
         # 5. Add Project Comment Form
@@ -972,8 +964,8 @@ class HiveTUIApp(App):
         self.notify("Decision recorded successfully.")
         await self.async_refresh_all()
 
-    async def async_update_project(self, name: str, details: str, overall_idea: str) -> None:
-        await asyncio.to_thread(self._db_update_project, name, details, overall_idea)
+    async def async_update_project(self, name: str, details: str, overall_idea: str, progress: str) -> None:
+        await asyncio.to_thread(self._db_update_project, name, details, overall_idea, progress)
         self.notify("Project info updated successfully.")
         await self.async_refresh_all()
 

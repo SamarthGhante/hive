@@ -1,12 +1,12 @@
 import os
 import pytest
 from pathlib import Path
-from sqlmodel import Session, SQLModel
-
-TEST_DB_FILE = "test_hive.db"
+from sqlmodel import Session
 
 from hive.database import get_engine, init_db
 import hive.crud as crud
+
+TEST_DB_FILE = "test_hive.db"
 
 @pytest.fixture(name="session")
 def session_fixture():

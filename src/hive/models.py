@@ -24,6 +24,7 @@ class Project(SQLModel, table=True):
     name: str = Field(default="My Hive Project")
     details: Optional[str] = Field(default=None)
     overall_idea: Optional[str] = Field(default=None)
+    progress: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

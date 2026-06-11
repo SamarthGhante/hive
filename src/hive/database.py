@@ -47,7 +47,6 @@ def get_engine():
 def init_db() -> None:
     """Create all database tables."""
     # Ensure models are imported so SQLModel knows about them
-    from hive.models import Task, Dependency, Comment, Decision, Memory, Event, Project
     
     engine = get_engine()
     SQLModel.metadata.create_all(engine)

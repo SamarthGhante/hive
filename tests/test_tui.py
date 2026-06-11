@@ -1,12 +1,11 @@
 import os
 import pytest
 from pathlib import Path
-from sqlmodel import Session
-
-TEST_TUI_DB_FILE = "test_tui_hive.db"
 
 from hive.tui import HiveTUIApp
 from hive.database import init_db
+
+TEST_TUI_DB_FILE = "test_tui_hive.db"
 
 @pytest.fixture(autouse=True)
 def setup_db():
