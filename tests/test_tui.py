@@ -26,14 +26,20 @@ async def test_tui_mount():
     async with app.run_test() as pilot:
         # Check that top-level widgets exist
         assert app.query_one("#task-table") is not None
-        assert app.query_one("#command-input") is not None
+        assert app.query_one("#new-task-title") is not None
         assert app.query_one("#details-view") is not None
-        assert app.query_one("#project-command-input") is not None
+        assert app.query_one("#project-name-input") is not None
         
-        # Test input command submission to create a task
-        command_input = app.query_one("#command-input")
-        command_input.focus()
-        command_input.value = "/create Test Task from TUI"
+        # Test input form submission to create a task
+        title_input = app.query_one("#new-task-title")
+        desc_input = app.query_one("#new-task-desc")
+        
+        title_input.focus()
+        title_input.value = "Test Task from TUI"
+        await pilot.press("enter")
+        
+        desc_input.focus()
+        desc_input.value = "Test Task Description"
         await pilot.press("enter")
         
         # Pause to let the background database worker complete and update table rows
