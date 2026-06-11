@@ -40,7 +40,7 @@ class HiveTUIApp(App):
     /* Refined Dark Gray Box Theme & Rounded Borders Stylesheet */
 
     /* Color system tokens */
-    $background: #121212;   /* Dark background */
+    $background: #09090b;   /* Almost black background */
     $surface: #1e1e1e;      /* Dark gray box background */
     $panel: #262626;        /* Darker gray for panel contents/inputs */
     $primary: #ffffff;      /* White text / white nerd font white */
