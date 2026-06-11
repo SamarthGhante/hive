@@ -9,11 +9,10 @@ from textual.widgets import (
     Button, Input, Label, RichLog
 )
 from textual.reactive import reactive
-from textual.message import Message
 from rich.panel import Panel
 from rich.text import Text
 
-from hive.database import get_session, get_db_path, init_db
+from hive.database import get_session
 import hive.crud as crud
 from hive.models import Task, Project
 from hive.utils import get_current_actor, format_priority, format_status, format_datetime
@@ -31,78 +30,119 @@ class HiveTUIApp(App):
 
     CSS = """
     Screen {
-        background: #1e1e1e;
-        color: #d4d4d4;
+        background: #020617;
+        color: #f8fafc;
+    }
+    
+    TabbedContent {
+        background: #020617;
+    }
+    
+    Tabs {
+        background: #0b0f19;
+        border-bottom: solid #1e293b;
+    }
+    
+    Tab {
+        color: #64748b;
+        font-weight: bold;
+    }
+    
+    Tab:hover {
+        background: #1e293b;
+        color: #38bdf8;
+    }
+    
+    Tab.--active {
+        color: #38bdf8;
+        background: #0f172a;
+        border-bottom: solid #38bdf8 2;
     }
     
     .pane-container {
         layout: grid;
         grid-size: 2;
-        grid-columns: 45% 55%;
+        grid-columns: 40% 60%;
         height: 100%;
-        padding: 1;
+        padding: 0;
+        margin: 0;
     }
     
     .tui-column {
-        border: solid #3c3c3c;
+        border: solid #1e293b;
         padding: 1;
-        height: 100%;
+        margin: 1;
+        background: #0b0f19;
+        border-radius: 4;
     }
     
     .section-title {
         text-style: bold;
-        color: #007acc;
+        color: #38bdf8;
         margin-bottom: 1;
+        border-bottom: double #334155;
     }
     
     #task-table {
-        height: 70%;
-        border: tall #2d2d2d;
+        height: 1fr;
+        border: solid #1e293b;
+        background: #020617;
     }
     
-    #new-task-form {
+    DataTable > .datatable--header {
+        background: #0f172a;
+        color: #38bdf8;
+        text-style: bold;
+    }
+    
+    DataTable > .datatable--cursor {
+        background: #2563eb;
+        color: #ffffff;
+    }
+    
+    #new-task-form, #project-update-form {
         height: auto;
-        border-top: solid #3c3c3c;
+        border-top: solid #1e293b;
         padding-top: 1;
         margin-top: 1;
         layout: vertical;
-    }
-    
-    #project-update-form {
-        height: auto;
-        border-top: solid #3c3c3c;
-        padding-top: 1;
-        margin-top: 1;
-        layout: vertical;
+        background: #0f172a;
+        border-radius: 4;
+        padding: 1;
     }
     
     .input-field {
         margin-bottom: 1;
     }
     
+    Input {
+        background: #020617;
+        border: tall #334155;
+        color: #f8fafc;
+        margin-bottom: 1;
+    }
+    
+    Input:focus {
+        border: tall #38bdf8;
+    }
+    
     .scrollable-pane {
         height: 1fr;
-        border: solid #2d2d2d;
+        border: solid #1e293b;
         padding: 1;
-        background: #1e1e1e;
+        background: #020617;
         margin-bottom: 1;
+        border-radius: 4;
     }
     
     .scrollable-pane > Static {
         height: auto;
     }
     
-    #details-view {
+    #details-view, #project-info-view {
         padding: 1;
-        background: #252526;
-        border: solid #3c3c3c;
-        height: auto;
-    }
-    
-    #project-info-view {
-        padding: 1;
-        background: #252526;
-        border: solid #3c3c3c;
+        background: #020617;
+        border: none;
         height: auto;
     }
     
@@ -110,22 +150,71 @@ class HiveTUIApp(App):
         layout: horizontal;
         height: 3;
         align: center middle;
+        margin-top: 1;
     }
     
     .action-btn {
         margin: 0 1;
+        min-width: 16;
     }
     
     .input-box-pane {
         height: auto;
-        border-top: solid #3c3c3c;
+        border-top: solid #1e293b;
         padding-top: 1;
+        background: #0f172a;
+        padding: 1;
+        border-radius: 4;
     }
     
     #task-feed-log, #project-feed-log {
         height: 1fr;
-        background: #1e1e1e;
-        border: solid #2d2d2d;
+        background: #020617;
+        border: solid #1e293b;
+        border-radius: 4;
+        padding: 1;
+    }
+    
+    Button {
+        background: #1e293b;
+        color: #e2e8f0;
+        border: none;
+        height: 3;
+    }
+    
+    Button:hover {
+        background: #334155;
+    }
+    
+    Button.-active {
+        background: #2563eb;
+    }
+    
+    #btn-claim {
+        background: #0f766e;
+        color: #ffffff;
+    }
+    
+    #btn-claim:hover {
+        background: #0d9488;
+    }
+    
+    #btn-status {
+        background: #1e293b;
+        color: #e2e8f0;
+    }
+    
+    #btn-status:hover {
+        background: #334155;
+    }
+    
+    #btn-complete {
+        background: #166534;
+        color: #ffffff;
+    }
+    
+    #btn-complete:hover {
+        background: #15803d;
     }
     """
 
@@ -141,7 +230,7 @@ class HiveTUIApp(App):
                         yield Label("📋 Tasks", classes="section-title")
                         yield DataTable(id="task-table")
                         with Vertical(id="new-task-form"):
-                            yield Label("[bold]Quick Create Task[/bold]")
+                            yield Label("[bold cyan]Quick Create Task[/bold cyan]")
                             yield Input(placeholder="Task Title...", id="new-task-title")
                             yield Input(placeholder="Task Description... (Press Enter to save)", id="new-task-desc")
                     
@@ -160,14 +249,14 @@ class HiveTUIApp(App):
                                 with VerticalScroll(classes="scrollable-pane"):
                                     yield Static(id="task-comments-list")
                                 with Vertical(classes="input-box-pane"):
-                                    yield Label("Add Task Comment:")
+                                    yield Label("[bold cyan]Add Task Comment:[/bold cyan]")
                                     yield Input(placeholder="Type comment and press Enter...", id="new-task-comment-input")
                             
                             with TabPane("Task Decisions"):
                                 with VerticalScroll(classes="scrollable-pane"):
                                     yield Static(id="task-decisions-list")
                                 with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold]Record Task Decision[/bold]")
+                                    yield Label("[bold cyan]Record Task Decision[/bold cyan]")
                                     yield Input(placeholder="Decision Title...", id="task-dec-title")
                                     yield Input(placeholder="Context/Reasoning...", id="task-dec-context")
                                     yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="task-dec-text")
@@ -183,7 +272,7 @@ class HiveTUIApp(App):
                         with VerticalScroll(classes="scrollable-pane"):
                             yield Static(id="project-info-view")
                         with Vertical(id="project-update-form"):
-                            yield Label("[bold]Update Project Info[/bold]")
+                            yield Label("[bold cyan]Update Project Info[/bold cyan]")
                             yield Input(placeholder="Project Name...", id="project-name-input")
                             yield Input(placeholder="Project Details...", id="project-details-input")
                             yield Input(placeholder="Overall Idea... (Press Enter to update)", id="project-idea-input")
@@ -195,14 +284,14 @@ class HiveTUIApp(App):
                                 with VerticalScroll(classes="scrollable-pane"):
                                     yield Static(id="project-comments-list")
                                 with Vertical(classes="input-box-pane"):
-                                    yield Label("Add Project Comment:")
+                                    yield Label("[bold cyan]Add Project Comment:[/bold cyan]")
                                     yield Input(placeholder="Type comment and press Enter...", id="new-project-comment-input")
                             
                             with TabPane("Project Decisions"):
                                 with VerticalScroll(classes="scrollable-pane"):
                                     yield Static(id="project-decisions-list")
                                 with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold]Record Project Decision[/bold]")
+                                    yield Label("[bold cyan]Record Project Decision[/bold cyan]")
                                     yield Input(placeholder="Decision Title...", id="project-dec-title")
                                     yield Input(placeholder="Context/Reasoning...", id="project-dec-context")
                                     yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="project-dec-text")
@@ -211,7 +300,7 @@ class HiveTUIApp(App):
                                 with VerticalScroll(classes="scrollable-pane"):
                                     yield Static(id="project-memories-list")
                                 with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold]Add/Update Project Memory[/bold]")
+                                    yield Label("[bold cyan]Add/Update Project Memory[/bold cyan]")
                                     yield Input(placeholder="Memory Key...", id="project-mem-key")
                                     yield Input(placeholder="Memory Value... (Press Enter to save)", id="project-mem-val")
                                     
@@ -237,15 +326,26 @@ class HiveTUIApp(App):
         with get_session() as session:
             tasks = crud.list_tasks(session)
             for t in tasks:
-                status_str = format_status(t.status)
-                priority_str = format_priority(t.priority)
+                status_color = {"todo": "gray", "in_progress": "blue", "review": "yellow", "done": "green"}.get(t.status.lower(), "white")
+                status_str = f"[{status_color}]{format_status(t.status)}[/{status_color}]"
+                
+                prio_color = {0: "bold red", 1: "red", 2: "yellow", 3: "blue", 4: "gray"}.get(t.priority, "white")
+                priority_str = f"[{prio_color}]{format_priority(t.priority)}[/{prio_color}]"
+                
+                assignee_str = f"[cyan]@{t.assignee}[/cyan]" if t.assignee else "[dim]-[/dim]"
+                id_str = f"[bold white]#{t.id}[/bold white]"
+                title_str = f"[strike dim]{t.title}[/strike dim]" if t.status.lower() == "done" else t.title
+                
+                progress_color = "green" if t.progress == 100 else "blue" if t.progress > 0 else "gray"
+                progress_str = f"[{progress_color}]{t.progress}%[/{progress_color}]"
+                
                 table.add_row(
-                    f"#{t.id}",
-                    t.title,
+                    id_str,
+                    title_str,
                     status_str,
                     priority_str,
-                    f"{t.progress}%",
-                    t.assignee or "-",
+                    progress_str,
+                    assignee_str,
                     key=str(t.id)
                 )
         
@@ -312,8 +412,8 @@ class HiveTUIApp(App):
         with get_session() as session:
             if not self.selected_task_id:
                 details_box.update(Panel("No tasks found. Use the quick create input on the left to create a task.", title="Details"))
-                comments_box.update("Create a task to view comments.")
-                decisions_box.update("No task selected.")
+                comments_box.update("[italic dim]Create a task to view comments.[/italic dim]")
+                decisions_box.update("[italic dim]No task selected.[/italic dim]")
                 
                 self.query_one("#btn-claim", Button).disabled = True
                 self.query_one("#btn-status", Button).disabled = True
@@ -324,28 +424,28 @@ class HiveTUIApp(App):
                     details_box.update(Panel("Selected task not found.", title="Error"))
                     return
                     
-                status_theme = {"todo": "grey", "in_progress": "blue", "review": "yellow", "done": "green"}.get(task.status, "white")
-                prio_theme = {0: "red bold", 1: "red", 2: "yellow", 3: "blue", 4: "grey"}.get(task.priority, "white")
+                status_theme = {"todo": "gray", "in_progress": "blue", "review": "yellow", "done": "green"}.get(task.status, "white")
+                prio_theme = {0: "bold red", 1: "red", 2: "yellow", 3: "blue", 4: "gray"}.get(task.priority, "white")
                 
                 details_text = Text.assemble(
-                    ("Title: ", "bold"), f"{task.title}\n",
-                    ("Description: ", "bold"), f"{task.description or 'No description'}\n\n",
-                    ("Status: ", "bold"), (format_status(task.status), status_theme), "  |  ",
-                    ("Priority: ", "bold"), (format_priority(task.priority), prio_theme), "  |  ",
-                    ("Progress: ", "bold"), f"{task.progress}%\n",
-                    ("Assignee: ", "bold"), ("@" + task.assignee if task.assignee else "Unassigned", "cyan"), "\n",
-                    ("Created: ", "bold"), f"{format_datetime(task.created_at)}\n",
-                    ("Updated: ", "bold"), f"{format_datetime(task.updated_at)}"
+                    ("Title: ", "bold cyan"), f"{task.title}\n",
+                    ("Description: ", "bold cyan"), f"{task.description or 'No description'}\n\n",
+                    ("Status: ", "bold cyan"), (format_status(task.status), status_theme), "  |  ",
+                    ("Priority: ", "bold cyan"), (format_priority(task.priority), prio_theme), "  |  ",
+                    ("Progress: ", "bold cyan"), f"{task.progress}%\n",
+                    ("Assignee: ", "bold cyan"), ("@" + task.assignee if task.assignee else "Unassigned", "green"), "\n",
+                    ("Created: ", "bold cyan"), f"{format_datetime(task.created_at)}\n",
+                    ("Updated: ", "bold cyan"), f"{format_datetime(task.updated_at)}"
                 )
-                details_box.update(Panel(details_text, title=f"Task #{task.id}"))
+                details_box.update(Panel(details_text, title=f"Task #{task.id}", border_style="cyan"))
                 
                 # Comments
                 comments = crud.get_comments(session, self.selected_task_id)
                 comment_content = []
                 for c in comments:
-                    comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] ({format_datetime(c.created_at)}):\n{c.content}\n---")
+                    comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[dim]──────────────────────────────────────────────────[/dim]")
                 if not comment_content:
-                    comment_content.append("No comments yet. Type below to add one.")
+                    comment_content.append("[italic dim]No comments yet. Type below and press Enter to add one.[/italic dim]")
                 comments_box.update("\n".join(comment_content))
                 
                 # Decisions: Task-level decisions only
@@ -354,9 +454,14 @@ class HiveTUIApp(App):
                 if task_decisions:
                     decision_content.append("[bold underline green]Task Decisions:[/bold underline green]")
                     for d in task_decisions:
-                        decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
+                        decision_content.append(
+                            f"[bold magenta]⚡ {d.title}[/bold magenta] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
+                            f"[italic cyan]Context:[/italic cyan] {d.context}\n"
+                            f"[bold green]Decision:[/bold green] {d.decision}\n"
+                            f"[dim]──────────────────────────────────────────────────[/dim]"
+                        )
                 if not decision_content:
-                    decision_content.append("No decisions recorded for this task yet.")
+                    decision_content.append("[italic dim]No decisions recorded for this task yet.[/italic dim]")
                 decisions_box.update("\n".join(decision_content))
                 
                 # Enable action buttons
@@ -386,20 +491,23 @@ class HiveTUIApp(App):
             assignees = {t.assignee for t in tasks if t.assignee}
             
             info_text = Text.assemble(
-                ("Project Name: ", "bold"), f"{project.name}\n\n",
-                ("Details: ", "bold"), f"{project.details or 'No details.'}\n\n",
-                ("Overall Idea: ", "bold"), f"{project.overall_idea or 'No overall idea.'}\n\n",
-                ("Last Updated: ", "bold"), f"{format_datetime(project.updated_at)}\n\n",
-                ("--- Task Statistics ---\n", "bold magenta"),
-                ("Total Tasks: ", "bold"), f"{total_tasks}\n",
-                ("Todo: ", "bold"), f"{todo_count}  |  ",
-                ("In Progress: ", "bold"), f"{in_progress_count}  |  ",
-                ("Review: ", "bold"), f"{review_count}  |  ",
-                ("Done: ", "bold"), f"{done_count}\n",
-                ("Average Progress: ", "bold"), f"{avg_progress}%\n",
-                ("Active Team Members: ", "bold"), f"{len(assignees)}"
+                ("Project Name: ", "bold yellow"), f"{project.name}\n\n",
+                ("Details: ", "bold yellow"), f"{project.details or 'No details.'}\n\n",
+                ("Overall Idea: ", "bold yellow"), f"{project.overall_idea or 'No overall idea.'}\n\n",
+                ("Last Updated: ", "bold yellow"), f"{format_datetime(project.updated_at)}\n\n",
+                ("┌" + "─" * 40 + "┐\n", "bold magenta"),
+                ("│            TASK STATISTICS             │\n", "bold magenta"),
+                ("├" + "─" * 40 + "┤\n", "bold magenta"),
+                ("│  Total Tasks: ", "bold"), f"{total_tasks:<25}│\n",
+                ("│  Todo: ", "bold"), f"{todo_count:<32}│\n",
+                ("│  In Progress: ", "bold"), f"{in_progress_count:<25}│\n",
+                ("│  Review: ", "bold"), f"{review_count:<30}│\n",
+                ("│  Done: ", "bold"), f"{done_count:<32}│\n",
+                ("│  Average Progress: ", "bold"), f"{f'{avg_progress}%':<20}│\n",
+                ("│  Active Team Members: ", "bold"), f"{len(assignees):<17}│\n",
+                ("└" + "─" * 40 + "┘", "bold magenta")
             )
-            info_box.update(Panel(info_text, title="Project Status"))
+            info_box.update(Panel(info_text, title="Project Hub Status", border_style="yellow"))
             
             # Populate form inputs with current values if they are empty
             name_input = self.query_one("#project-name-input", Input)
@@ -416,27 +524,32 @@ class HiveTUIApp(App):
             comments = crud.get_comments(session, task_id=None)
             comment_content = []
             for c in comments:
-                comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] ({format_datetime(c.created_at)}):\n{c.content}\n---")
+                comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[dim]──────────────────────────────────────────────────[/dim]")
             if not comment_content:
-                comment_content.append("No project comments yet. Type below to add one.")
+                comment_content.append("[italic dim]No project comments yet. Type below to add one.[/italic dim]")
             comments_box.update("\n".join(comment_content))
             
             # Project decisions
             decisions = crud.get_decisions(session, project_only=True)
             decision_content = []
             for d in decisions:
-                decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
+                decision_content.append(
+                    f"[bold magenta]⚡ {d.title}[/bold magenta] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
+                    f"[italic cyan]Context:[/italic cyan] {d.context}\n"
+                    f"[bold green]Decision:[/bold green] {d.decision}\n"
+                    f"[dim]──────────────────────────────────────────────────[/dim]"
+                )
             if not decision_content:
-                decision_content.append("No project decisions recorded yet. Record one below.")
+                decision_content.append("[italic dim]No project decisions recorded yet. Record one below.[/italic dim]")
             decisions_box.update("\n".join(decision_content))
             
             # Project memories
             memories = crud.list_memories(session)
             memory_lines = []
             for m in memories:
-                memory_lines.append(f"[bold cyan]{m.key}[/bold cyan]: {m.value} [dim]({format_datetime(m.updated_at)})[/dim]\n---")
+                memory_lines.append(f"[bold yellow]🧠 {m.key}[/bold yellow] = {m.value} [dim]({format_datetime(m.updated_at)})[/dim]\n[dim]──────────────────────────────────────────────────[/dim]")
             if not memory_lines:
-                memory_lines.append("No project memories stored yet. Add one below.")
+                memory_lines.append("[italic dim]No project memories stored yet. Add one below.[/italic dim]")
             memories_box.update("\n".join(memory_lines))
 
     # --- Actions / Keyboard Event Handlers ---
