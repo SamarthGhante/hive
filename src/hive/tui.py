@@ -80,7 +80,7 @@ class HiveTUIApp(App):
     #nav-stats {
         height: 1;
         color: $secondary;
-        content-align: right middle;
+        content-align: center middle;
         width: 100%;
         padding: 0 2;
         background: $background;
