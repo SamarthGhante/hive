@@ -94,35 +94,34 @@ class HiveTUIApp(App):
         margin-left: 2;
         margin-right: 1;
         content-align: center middle;
-        height: 1;
+        height: 100%;
     }
     
     #nav-buttons {
         layout: horizontal;
-        height: 1;
+        height: 100%;
         width: auto;
     }
     
     .nav-btn {
-        background: #18181b;
+        background: transparent;
         color: #a1a1aa;
-        border: round #2e2e33;
-        height: 1;
+        border: none;
+        height: 100%;
         margin-right: 1;
-        min-width: 14;
+        min-width: 16;
         padding: 0 1;
     }
     
     .nav-btn:hover {
-        background: #2e2e33;
-        color: #f4f4f5;
-        border: round #3f3f46;
+        background: transparent;
+        color: #ffffff;
     }
     
     .nav-btn.-active {
-        background: #2e2e33;
+        background: transparent;
         color: #f4f4f5;
-        border: round #6366f1;
+        border-bottom: solid #6366f1;
         text-style: bold;
     }
     
@@ -272,7 +271,6 @@ class HiveTUIApp(App):
     .action-btn {
         margin: 0 1;
         min-width: 16;
-        height: 1;
     }
     
     .input-box-pane {
@@ -293,7 +291,7 @@ class HiveTUIApp(App):
         background: #2e2e33;
         color: #e4e4e7;
         border: none;
-        height: 1;
+        height: 3;
     }
     
     Button:hover {
@@ -334,6 +332,29 @@ class HiveTUIApp(App):
     
     #btn-complete:hover {
         background: #15803d;
+    }
+    
+    @media (max-width: 90) {
+        .page-container {
+            layout: vertical;
+        }
+        .left-column {
+            width: 100%;
+            height: 50%;
+            margin-right: 0;
+            margin-bottom: 1;
+        }
+        .right-column {
+            width: 100%;
+            height: 50%;
+            margin-left: 0;
+        }
+    }
+    
+    @media (max-width: 70) {
+        #nav-stats {
+            display: none;
+        }
     }
     """
 
