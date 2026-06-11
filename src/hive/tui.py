@@ -61,6 +61,7 @@ class HiveTUIApp(App):
         height: 1;
         border-bottom: solid $border;
         text-align: center;
+        dock: top;
     }
 
     Footer {
@@ -68,6 +69,7 @@ class HiveTUIApp(App):
         color: $secondary;
         height: 1;
         border-top: solid $border;
+        dock: bottom;
     }
 
     #nav-tabs {
@@ -280,7 +282,7 @@ class HiveTUIApp(App):
     selected_task_id = reactive(None)
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield Header(show_clock=True)
         with Vertical(id="app-container"):
             yield Tabs(
                 Tab("Workspace Board", id="tab-tasks"),
@@ -445,6 +447,7 @@ class HiveTUIApp(App):
     # --- UI rendering / Reactive sync ---
 
     def on_mount(self) -> None:
+        self.dark = True
         table = self.query_one("#task-table", DataTable)
         table.cursor_type = "row"
         table.add_columns(
