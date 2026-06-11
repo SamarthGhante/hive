@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlmodel import Session, select
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.widgets import (
     Header, Footer, Static, DataTable, TabbedContent, TabPane, 
     Button, Input, Label, RichLog
@@ -67,7 +67,7 @@ class HiveTUIApp(App):
     }
     
     #new-task-form {
-        height: 25%;
+        height: 8;
         border-top: solid #3c3c3c;
         padding-top: 1;
         margin-top: 1;
@@ -82,13 +82,17 @@ class HiveTUIApp(App):
         padding: 1;
         background: #252526;
         border: solid #3c3c3c;
-        height: 70%;
+        height: auto;
+    }
+    
+    .details-list-scroll {
+        height: 1fr;
         margin-bottom: 1;
     }
     
     #details-actions {
         layout: horizontal;
-        height: 20%;
+        height: 3;
         align: center middle;
     }
     
@@ -101,7 +105,6 @@ class HiveTUIApp(App):
         border: solid #2d2d2d;
         padding: 1;
         background: #1e1e1e;
-        overflow-y: scroll;
         margin-bottom: 1;
     }
     
@@ -116,7 +119,6 @@ class HiveTUIApp(App):
         border: solid #2d2d2d;
         padding: 1;
         background: #1e1e1e;
-        overflow-y: scroll;
         margin-bottom: 1;
     }
     
@@ -131,7 +133,6 @@ class HiveTUIApp(App):
         border: solid #2d2d2d;
         padding: 1;
         background: #1e1e1e;
-        overflow-y: scroll;
         margin-bottom: 1;
     }
     
@@ -142,7 +143,7 @@ class HiveTUIApp(App):
     }
     
     #feed-log {
-        height: 100%;
+        height: 1fr;
         background: #1e1e1e;
         border: solid #2d2d2d;
     }
@@ -158,27 +159,31 @@ class HiveTUIApp(App):
                 yield Label("📋 Tasks", classes="section-title")
                 yield DataTable(id="task-table")
                 with Vertical(id="new-task-form"):
-                    yield Label("[bold]Quick Create Task[/bold] (Enter Title)")
-                    yield Input(placeholder="Type task title and press Enter...", id="new-task-title")
+                    yield Label("[bold]Quick Create Task[/bold]")
+                    yield Input(placeholder="Task Title...", id="new-task-title")
+                    yield Input(placeholder="Task Description... (Press Enter to save)", id="new-task-desc")
             
             # Right Column
             with Vertical(id="right-pane"):
                 with TabbedContent(id="tabs"):
                     with TabPane("Details"):
-                        yield Static(id="details-view")
+                        with VerticalScroll(classes="details-list-scroll"):
+                            yield Static(id="details-view")
                         with Horizontal(id="details-actions"):
                             yield Button("Claim Task (c)", id="btn-claim", variant="primary", classes="action-btn")
                             yield Button("Cycle Status (s)", id="btn-status", variant="default", classes="action-btn")
                             yield Button("Complete Task", id="btn-complete", variant="success", classes="action-btn")
                     
                     with TabPane("Comments"):
-                        yield Static(id="comments-list", classes="comment-list")
+                        with VerticalScroll(classes="comment-list"):
+                            yield Static(id="comments-list")
                         with Vertical(classes="comment-input-box"):
                             yield Label("Add Comment:")
                             yield Input(placeholder="Type comment and press Enter...", id="new-comment-input")
                     
                     with TabPane("Decisions"):
-                        yield Static(id="decisions-list", classes="decision-list")
+                        with VerticalScroll(classes="decision-list"):
+                            yield Static(id="decisions-list")
                         with Vertical(classes="decision-form"):
                             yield Label("[bold]Record Decision[/bold]")
                             yield Input(placeholder="Decision Title...", id="dec-title")
@@ -186,7 +191,8 @@ class HiveTUIApp(App):
                             yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="dec-text")
                     
                     with TabPane("Memories"):
-                        yield Static(id="memories-list", classes="memory-list")
+                        with VerticalScroll(classes="memory-list"):
+                            yield Static(id="memories-list")
                         with Vertical(classes="memory-form"):
                             yield Label("[bold]Add/Update Project Memory[/bold]")
                             yield Input(placeholder="Memory Key...", id="mem-key")
@@ -286,7 +292,7 @@ class HiveTUIApp(App):
                 comments_box.update("Create a task to view comments.")
                 
                 # Show project decisions
-                decisions = crud.get_decisions(session, task_id=None)
+                decisions = crud.get_decisions(session, project_only=True)
                 decision_content = []
                 for d in decisions:
                     decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
@@ -332,7 +338,7 @@ class HiveTUIApp(App):
                 
                 # Decisions: Task-level + Project-level (clearly labeled)
                 task_decisions = crud.get_decisions(session, self.selected_task_id)
-                project_decisions = crud.get_decisions(session, task_id=None)
+                project_decisions = crud.get_decisions(session, project_only=True)
                 
                 decision_content = []
                 if task_decisions:
@@ -406,8 +412,18 @@ class HiveTUIApp(App):
             title = event.value.strip()
             if not title:
                 return
+            self.query_one("#new-task-desc", Input).focus()
+            
+        elif input_id == "new-task-desc":
+            title = self.query_one("#new-task-title", Input).value.strip()
+            desc = event.value.strip()
+            if not title:
+                self.notify("Task Title is required.")
+                return
             with get_session() as session:
-                crud.create_task(session, title=title)
+                crud.create_task(session, title=title, description=desc if desc else None)
+            
+            self.query_one("#new-task-title", Input).value = ""
             event.input.value = ""
             self.refresh_tasks()
             self.refresh_feed()

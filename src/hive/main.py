@@ -398,10 +398,13 @@ def decision_add(
         console.print(f"[green]Recorded decision: [bold]{title}[/bold][/green]")
 
 @decision_app.command("list")
-def decision_list(task_id: Optional[int] = typer.Option(None, "--task-id", "-k", help="Filter by Task ID")):
+def decision_list(
+    task_id: Optional[int] = typer.Option(None, "--task-id", "-k", help="Filter by Task ID"),
+    project_only: bool = typer.Option(False, "--project-only", "-p", help="Filter for project-level decisions only")
+):
     """List decisions."""
     with get_session() as session:
-        decisions = crud.get_decisions(session, task_id)
+        decisions = crud.get_decisions(session, task_id=task_id, project_only=project_only)
         if not decisions:
             console.print("[yellow]No decisions found.[/yellow]")
             return

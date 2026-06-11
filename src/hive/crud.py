@@ -303,9 +303,11 @@ def add_decision(
     )
     return decision
 
-def get_decisions(session: Session, task_id: Optional[int] = None) -> List[Decision]:
+def get_decisions(session: Session, task_id: Optional[int] = None, project_only: bool = False) -> List[Decision]:
     statement = select(Decision)
-    if task_id is not None:
+    if project_only:
+        statement = statement.where(Decision.task_id == None)
+    elif task_id is not None:
         statement = statement.where(Decision.task_id == task_id)
     statement = statement.order_by(Decision.created_at.desc())
     return session.exec(statement).all()
