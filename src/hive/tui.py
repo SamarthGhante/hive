@@ -33,9 +33,41 @@ class HiveTUIApp(App):
     ]
 
     CSS = """
+    * {
+        color: #e4e4e7;
+    }
+    
     Screen {
         background: #18181b;
         color: #e4e4e7;
+    }
+    
+    Header {
+        color: #e4e4e7;
+        background: #202023;
+    }
+    
+    Footer {
+        color: #a1a1aa;
+        background: #202023;
+    }
+    
+    Static {
+        color: #e4e4e7;
+    }
+    
+    Label {
+        color: #e4e4e7;
+    }
+    
+    DataTable {
+        color: #e4e4e7;
+        background: #18181b;
+    }
+    
+    RichLog {
+        color: #e4e4e7;
+        background: #18181b;
     }
     
     #app-container {
@@ -420,15 +452,15 @@ class HiveTUIApp(App):
         with get_session() as session:
             tasks = crud.list_tasks(session)
             for t in tasks:
-                status_color = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(t.status.lower(), "white")
+                status_color = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(t.status.lower(), "#e4e4e7")
                 status_str = f"[{status_color}]{format_status(t.status)}[/{status_color}]"
                 
-                prio_color = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(t.priority, "white")
+                prio_color = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(t.priority, "#e4e4e7")
                 priority_str = f"[{prio_color}]{format_priority(t.priority)}[/{prio_color}]"
                 
-                assignee_str = f"[cyan]@{t.assignee}[/cyan]" if t.assignee else "[dim]-[/dim]"
-                id_str = f"[bold white]#{t.id}[/bold white]"
-                title_str = f"[strike dim]{t.title}[/strike dim]" if t.status.lower() == "done" else t.title
+                assignee_str = f"[#22d3ee]@{t.assignee}[/#22d3ee]" if t.assignee else "[#71717a]-[/#71717a]"
+                id_str = f"[bold #f4f4f5]#{t.id}[/bold #f4f4f5]"
+                title_str = f"[strike][#71717a]{t.title}[/#71717a][/strike]" if t.status.lower() == "done" else f"[#e4e4e7]{t.title}[/#e4e4e7]"
                 
                 progress_color = "#34d399" if t.progress == 100 else "#60a5fa" if t.progress > 0 else "#a1a1aa"
                 progress_str = f"[{progress_color}]{t.progress}%[/{progress_color}]"
@@ -471,9 +503,9 @@ class HiveTUIApp(App):
             in_progress_count = sum(1 for t in tasks if t.status == "in_progress")
             
             stats_text = Text.assemble(
-                ("Tasks: ", "bold #a1a1aa"), f"{total_tasks}  |  ",
-                ("Active: ", "bold #a1a1aa"), f"{in_progress_count}  |  ",
-                ("Completed: ", "bold #a1a1aa"), f"{done_count}  "
+                ("Tasks: ", "bold #a1a1aa"), (f"{total_tasks}  |  ", "#e4e4e7"),
+                ("Active: ", "bold #a1a1aa"), (f"{in_progress_count}  |  ", "#e4e4e7"),
+                ("Completed: ", "bold #a1a1aa"), (f"{done_count}  ", "#e4e4e7")
             )
             stats_box.update(stats_text)
 
@@ -525,9 +557,10 @@ class HiveTUIApp(App):
         
         with get_session() as session:
             if not self.selected_task_id:
-                details_box.update(Panel("No tasks found. Use the quick create input on the left to create a task.", title="Details"))
-                comments_box.update("[italic dim]Create a task to view comments.[/italic dim]")
-                decisions_box.update("[italic dim]No task selected.[/italic dim]")
+                panel_text = Text("No tasks found. Use the quick create input on the left to create a task.", style="#e4e4e7")
+                details_box.update(Panel(panel_text, title=Text("Details", style="bold #a1a1aa"), border_style="#3f3f46"))
+                comments_box.update("[italic #71717a]Create a task to view comments.[/italic #71717a]")
+                decisions_box.update("[italic #71717a]No task selected.[/italic #71717a]")
                 
                 self.query_one("#btn-claim", Button).disabled = True
                 self.query_one("#btn-status", Button).disabled = True
@@ -535,31 +568,32 @@ class HiveTUIApp(App):
             else:
                 task = crud.get_task(session, self.selected_task_id)
                 if not task:
-                    details_box.update(Panel("Selected task not found.", title="Error"))
+                    panel_text = Text("Selected task not found.", style="#e4e4e7")
+                    details_box.update(Panel(panel_text, title=Text("Error", style="bold #ef4444"), border_style="#ef4444"))
                     return
                     
-                status_theme = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(task.status, "white")
-                prio_theme = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(task.priority, "white")
+                status_theme = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(task.status, "#e4e4e7")
+                prio_theme = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(task.priority, "#e4e4e7")
                 
                 details_text = Text.assemble(
-                    ("Task Title:  ", "bold #a1a1aa"), f"{task.title}\n",
-                    ("Description: ", "bold #a1a1aa"), f"{task.description or 'No description'}\n\n",
-                    ("Status:      ", "bold #a1a1aa"), (format_status(task.status), status_theme), "  |  ",
-                    ("Priority:    ", "bold #a1a1aa"), (format_priority(task.priority), prio_theme), "  |  ",
-                    ("Progress:    ", "bold #a1a1aa"), f"{task.progress}%\n",
-                    ("Assignee:    ", "bold #a1a1aa"), ("@" + task.assignee if task.assignee else "Unassigned", "#34d399"), "\n",
-                    ("Created:     ", "bold #a1a1aa"), f"{format_datetime(task.created_at)}\n",
-                    ("Updated:     ", "bold #a1a1aa"), f"{format_datetime(task.updated_at)}"
+                    ("Task Title:  ", "bold #a1a1aa"), (f"{task.title}\n", "#e4e4e7"),
+                    ("Description: ", "bold #a1a1aa"), (f"{task.description or 'No description'}\n\n", "#e4e4e7"),
+                    ("Status:      ", "bold #a1a1aa"), (format_status(task.status), status_theme), ("  |  ", "#a1a1aa"),
+                    ("Priority:    ", "bold #a1a1aa"), (format_priority(task.priority), prio_theme), ("  |  ", "#a1a1aa"),
+                    ("Progress:    ", "bold #a1a1aa"), (f"{task.progress}%\n", "#e4e4e7"),
+                    ("Assignee:    ", "bold #a1a1aa"), ("@" + task.assignee if task.assignee else "Unassigned", "#34d399"), ("\n", "#a1a1aa"),
+                    ("Created:     ", "bold #a1a1aa"), (f"{format_datetime(task.created_at)}\n", "#e4e4e7"),
+                    ("Updated:     ", "bold #a1a1aa"), (f"{format_datetime(task.updated_at)}", "#e4e4e7")
                 )
-                details_box.update(Panel(details_text, title=f"Task #{task.id}", border_style="#3f3f46"))
+                details_box.update(Panel(details_text, title=Text(f"Task #{task.id}", style="bold #a1a1aa"), border_style="#3f3f46"))
                 
                 # Comments
                 comments = crud.get_comments(session, self.selected_task_id)
                 comment_content = []
                 for c in comments:
-                    comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
+                    comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
                 if not comment_content:
-                    comment_content.append("[italic dim]No comments yet. Type below and press Enter to add one.[/italic dim]")
+                    comment_content.append("[italic #71717a]No comments yet. Type below and press Enter to add one.[/italic #71717a]")
                 comments_box.update("\n".join(comment_content))
                 
                 # Decisions: Task-level decisions only
@@ -569,13 +603,13 @@ class HiveTUIApp(App):
                     decision_content.append("[bold underline #34d399]Task Decisions:[/bold underline #34d399]")
                     for d in task_decisions:
                         decision_content.append(
-                            f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
-                            f"[italic #a1a1aa]Context:[/italic #a1a1aa] {d.context}\n"
-                            f"[bold #34d399]Decision:[/bold #34d399] {d.decision}\n"
+                            f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
+                            f"[italic #a1a1aa]Context:[/italic #a1a1aa] [#e4e4e7]{d.context}[/#e4e4e7]\n"
+                            f"[bold #34d399]Decision:[/bold #34d399] [#e4e4e7]{d.decision}[/#e4e4e7]\n"
                             f"[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]"
                         )
                 if not decision_content:
-                    decision_content.append("[italic dim]No decisions recorded for this task yet.[/italic dim]")
+                    decision_content.append("[italic #71717a]No decisions recorded for this task yet.[/italic #71717a]")
                 decisions_box.update("\n".join(decision_content))
                 
                 # Enable action buttons
@@ -606,32 +640,32 @@ class HiveTUIApp(App):
             
             # Build project overview details
             info_text = Text.assemble(
-                ("Project Name: ", "bold #fde047"), f"{project.name}\n\n",
-                ("Details:      ", "bold #a1a1aa"), f"{project.details or 'No details.'}\n\n",
-                ("Overall Idea: ", "bold #a1a1aa"), f"{project.overall_idea or 'No overall idea.'}\n\n",
-                ("Last Updated: ", "bold #a1a1aa"), f"{format_datetime(project.updated_at)}\n\n"
+                ("Project Name: ", "bold #fde047"), (f"{project.name}\n\n", "#e4e4e7"),
+                ("Details:      ", "bold #a1a1aa"), (f"{project.details or 'No details.'}\n\n", "#e4e4e7"),
+                ("Overall Idea: ", "bold #a1a1aa"), (f"{project.overall_idea or 'No overall idea.'}\n\n", "#e4e4e7"),
+                ("Last Updated: ", "bold #a1a1aa"), (f"{format_datetime(project.updated_at)}\n\n", "#e4e4e7")
             )
             
             # Create a beautiful grid for task stats
             stats_table = Table.grid(padding=(0, 2))
             stats_table.add_column(style="bold #a1a1aa") # Label
-            stats_table.add_column(style="bold white") # Value
+            stats_table.add_column(style="bold #f4f4f5") # Value
             
-            stats_table.add_row("Total Tasks:", str(total_tasks))
+            stats_table.add_row("Total Tasks:", f"[#f4f4f5]{total_tasks}[/#f4f4f5]")
             stats_table.add_row("Todo Tasks:", f"[#a1a1aa]{todo_count}[/#a1a1aa]")
             stats_table.add_row("In Progress:", f"[#60a5fa]{in_progress_count}[/#60a5fa]")
             stats_table.add_row("In Review:", f"[#fde047]{review_count}[/#fde047]")
             stats_table.add_row("Completed:", f"[#34d399]{done_count}[/#34d399]")
             
-            progress_bar = f"[#34d399]{'█' * (avg_progress // 10)}{'░' * (10 - avg_progress // 10)}[/#34d399] {avg_progress}%"
+            progress_bar = f"[#34d399]{'█' * (avg_progress // 10)}{'░' * (10 - avg_progress // 10)}[/#34d399] [#e4e4e7]{avg_progress}%[/#e4e4e7]"
             stats_table.add_row("Avg Progress:", progress_bar)
-            stats_table.add_row("Team Size:", f"{len(assignees)} active member(s)")
+            stats_table.add_row("Team Size:", f"[#e4e4e7]{len(assignees)} active member(s)[/#e4e4e7]")
             
             group = Group(
                 info_text,
                 Panel(stats_table, title="[bold #a1a1aa]Task Statistics[/bold #a1a1aa]", border_style="#3f3f46")
             )
-            info_box.update(Panel(group, title="Project Hub Status", border_style="#3f3f46"))
+            info_box.update(Panel(group, title=Text("Project Hub Status", style="bold #a1a1aa"), border_style="#3f3f46"))
             
             # Populate form inputs with current values if they are empty
             name_input = self.query_one("#project-name-input", Input)
@@ -648,9 +682,9 @@ class HiveTUIApp(App):
             comments = crud.get_comments(session, task_id=None)
             comment_content = []
             for c in comments:
-                comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
+                comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
             if not comment_content:
-                comment_content.append("[italic dim]No project comments yet. Type below to add one.[/italic dim]")
+                comment_content.append("[italic #71717a]No project comments yet. Type below to add one.[/italic #71717a]")
             comments_box.update("\n".join(comment_content))
             
             # Project decisions
@@ -658,22 +692,22 @@ class HiveTUIApp(App):
             decision_content = []
             for d in decisions:
                 decision_content.append(
-                    f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
-                    f"[italic #a1a1aa]Context:[/italic #a1a1aa] {d.context}\n"
-                    f"[bold #34d399]Decision:[/bold #34d399] {d.decision}\n"
+                    f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
+                    f"[italic #a1a1aa]Context:[/italic #a1a1aa] [#e4e4e7]{d.context}[/#e4e4e7]\n"
+                    f"[bold #34d399]Decision:[/bold #34d399] [#e4e4e7]{d.decision}[/#e4e4e7]\n"
                     f"[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]"
                 )
             if not decision_content:
-                decision_content.append("[italic dim]No project decisions recorded yet. Record one below.[/italic dim]")
+                decision_content.append("[italic #71717a]No project decisions recorded yet. Record one below.[/italic #71717a]")
             decisions_box.update("\n".join(decision_content))
             
             # Project memories
             memories = crud.list_memories(session)
             memory_lines = []
             for m in memories:
-                memory_lines.append(f"[bold #fbbf24]🧠 {m.key}[/bold #fbbf24] = {m.value} [dim]({format_datetime(m.updated_at)})[/dim]\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
+                memory_lines.append(f"[bold #fbbf24]🧠 {m.key}[/bold #fbbf24] = [#e4e4e7]{m.value}[/#e4e4e7] [#71717a]({format_datetime(m.updated_at)})[/#71717a]\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
             if not memory_lines:
-                memory_lines.append("[italic dim]No project memories stored yet. Add one below.[/italic dim]")
+                memory_lines.append("[italic #71717a]No project memories stored yet. Add one below.[/italic #71717a]")
             memories_box.update("\n".join(memory_lines))
 
     # --- Actions / Keyboard Event Handlers ---
