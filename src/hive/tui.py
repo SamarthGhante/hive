@@ -288,7 +288,8 @@ class HiveTUIApp(App):
                             with Vertical(id="new-task-form", classes="form-container"):
                                 yield Label("Quick Create Task", classes="form-label")
                                 yield Input(placeholder="Task title (Enter to description)...", id="new-task-title")
-                                yield Input(placeholder="Description (Enter to create)...", id="new-task-desc")
+                                yield Input(placeholder="Description (Enter to type)...", id="new-task-desc")
+                                yield Input(placeholder="Type: feature, bug, issue, chore (Enter to create)...", id="new-task-type", value="feature")
                         
                         # Right Column
                         with Vertical(id="right-pane", classes="right-column"):
@@ -300,6 +301,8 @@ class HiveTUIApp(App):
                                         yield Button("Claim (c)", id="btn-claim", classes="action-btn")
                                         yield Button("Status (s)", id="btn-status", classes="action-btn")
                                         yield Button("Complete", id="btn-complete", classes="action-btn")
+                                        yield Button("Unclaim", id="btn-unclaim", classes="action-btn")
+                                        yield Button("Reopen", id="btn-reopen", classes="action-btn")
                                 
                                 with TabPane("Comments", id="pane-task-comments"):
                                     with VerticalScroll(classes="scrollable-pane"):
@@ -411,9 +414,17 @@ class HiveTUIApp(App):
         with get_session() as session:
             crud.update_task(session, task_id, **kwargs)
 
-    def _db_create_task(self, title: str, description: Optional[str]) -> None:
+    def _db_unclaim_task(self, task_id: int) -> None:
         with get_session() as session:
-            crud.create_task(session, title=title, description=description)
+            crud.update_task(session, task_id, assignee="unassigned", status="todo", progress=0)
+
+    def _db_reopen_task(self, task_id: int) -> None:
+        with get_session() as session:
+            crud.update_task(session, task_id, status="todo", progress=0)
+
+    def _db_create_task(self, title: str, description: Optional[str], task_type: str = "feature") -> None:
+        with get_session() as session:
+            crud.create_task(session, title=title, description=description, task_type=task_type)
 
     def _db_add_comment(self, task_id: Optional[int], author: str, content: str) -> None:
         with get_session() as session:
@@ -435,11 +446,13 @@ class HiveTUIApp(App):
 
     def on_mount(self) -> None:
         self.dark = True
+        self.is_refreshing = False
         table = self.query_one("#task-table", DataTable)
         table.cursor_type = "row"
         table.add_columns(
             "[#a1a1aa]ID[/#a1a1aa]",
             "[#a1a1aa]Title[/#a1a1aa]",
+            "[#a1a1aa]Type[/#a1a1aa]",
             "[#a1a1aa]Status[/#a1a1aa]",
             "[#a1a1aa]Priority[/#a1a1aa]",
             "[#a1a1aa]Progress[/#a1a1aa]",
@@ -451,53 +464,68 @@ class HiveTUIApp(App):
         
         table.focus()
         self.run_worker(self.async_refresh_all(), group="db_sync")
+        
+        # Set up polling interval to auto update TUI when things change
+        self.set_interval(3.0, self.auto_refresh)
+
+    def auto_refresh(self) -> None:
+        self.run_worker(self.async_refresh_all(), group="db_sync")
 
     async def async_refresh_all(self) -> None:
         """Refresh all TUI data asynchronously from the database."""
-        tasks = await asyncio.to_thread(self._db_list_tasks)
-        
-        table = self.query_one("#task-table", DataTable)
-        table.clear()
-        
-        prev_selected_id = self.selected_task_id
-        
-        for t in tasks:
-            status_color = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(t.status.lower(), "#e4e4e7")
-            status_str = f"[{status_color}]{format_status(t.status)}[/{status_color}]"
+        self.is_refreshing = True
+        try:
+            tasks = await asyncio.to_thread(self._db_list_tasks)
             
-            prio_color = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(t.priority, "#e4e4e7")
-            priority_str = f"[{prio_color}]{format_priority(t.priority)}[/{prio_color}]"
+            table = self.query_one("#task-table", DataTable)
+            table.clear()
             
-            assignee_str = f"[#22d3ee]@{t.assignee}[/#22d3ee]" if t.assignee else "[#71717a]-[/#71717a]"
-            id_str = f"[bold #f4f4f5]#{t.id}[/bold #f4f4f5]"
-            title_str = f"[strike][#71717a]{t.title}[/#71717a][/strike]" if t.status.lower() == "done" else f"[#e4e4e7]{t.title}[/#e4e4e7]"
+            prev_selected_id = self.selected_task_id
             
-            progress_color = "#34d399" if t.progress == 100 else "#60a5fa" if t.progress > 0 else "#a1a1aa"
-            progress_str = f"[{progress_color}]{t.progress}%[/{progress_color}]"
-            
-            table.add_row(
-                id_str,
-                title_str,
-                status_str,
-                priority_str,
-                progress_str,
-                assignee_str,
-                key=str(t.id)
-            )
-            
-        if prev_selected_id and any(t.id == prev_selected_id for t in tasks):
-            try:
-                table.move_cursor(row=table.find_row(str(prev_selected_id)))
-            except Exception:
-                pass
-        elif tasks:
-            try:
-                table.move_cursor(row=0)
-                self.selected_task_id = tasks[0].id
-            except Exception:
-                pass
-        else:
-            self.selected_task_id = None
+            for t in tasks:
+                status_color = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(t.status.lower(), "#e4e4e7")
+                status_str = f"[{status_color}]{format_status(t.status)}[/{status_color}]"
+                
+                prio_color = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(t.priority, "#e4e4e7")
+                priority_str = f"[{prio_color}]{format_priority(t.priority)}[/{prio_color}]"
+                
+                type_color = {"feature": "#a7f3d0", "bug": "#f87171", "issue": "#fbbf24", "chore": "#e4e4e7"}.get(t.task_type.lower(), "#e4e4e7")
+                type_str = f"[{type_color}]{t.task_type.upper()}[/{type_color}]"
+                
+                assignee_str = f"[#22d3ee]@{t.assignee}[/#22d3ee]" if t.assignee else "[#71717a]-[/#71717a]"
+                id_str = f"[bold #f4f4f5]#{t.id}[/bold #f4f4f5]"
+                title_str = f"[strike][#71717a]{t.title}[/#71717a][/strike]" if t.status.lower() == "done" else f"[#e4e4e7]{t.title}[/#e4e4e7]"
+                
+                progress_color = "#34d399" if t.progress == 100 else "#60a5fa" if t.progress > 0 else "#a1a1aa"
+                progress_str = f"[{progress_color}]{t.progress}%[/{progress_color}]"
+                
+                table.add_row(
+                    id_str,
+                    title_str,
+                    type_str,
+                    status_str,
+                    priority_str,
+                    progress_str,
+                    assignee_str,
+                    key=str(t.id)
+                )
+                
+            if prev_selected_id and any(t.id == prev_selected_id for t in tasks):
+                try:
+                    table.move_cursor(row=table.find_row(str(prev_selected_id)))
+                    self.selected_task_id = prev_selected_id
+                except Exception:
+                    pass
+            elif tasks:
+                try:
+                    table.move_cursor(row=0)
+                    self.selected_task_id = tasks[0].id
+                except Exception:
+                    pass
+            else:
+                self.selected_task_id = None
+        finally:
+            self.is_refreshing = False
 
         project, all_tasks, project_comments, project_decisions, project_memories, project_events = await asyncio.to_thread(self._db_get_project_details)
         
@@ -653,12 +681,14 @@ class HiveTUIApp(App):
 
         status_theme = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(task.status.lower(), "#e4e4e7")
         prio_theme = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(task.priority, "#e4e4e7")
+        type_color = {"feature": "#a7f3d0", "bug": "#f87171", "issue": "#fbbf24", "chore": "#e4e4e7"}.get(task.task_type.lower(), "#e4e4e7")
 
         details_text = Text.assemble(
             ("Task Title:  ", "bold #a1a1aa"), (f"{task.title}\n", "#e4e4e7"),
             ("Description: ", "bold #a1a1aa"), (f"{task.description or 'No description'}\n\n", "#e4e4e7"),
+            ("Type:        ", "bold #a1a1aa"), (task.task_type.upper(), type_color), ("  |  ", "#a1a1aa"),
             ("Status:      ", "bold #a1a1aa"), (format_status(task.status), status_theme), ("  |  ", "#a1a1aa"),
-            ("Priority:    ", "bold #a1a1aa"), (format_priority(task.priority), prio_theme), ("  |  ", "#a1a1aa"),
+            ("Priority:    ", "bold #a1a1aa"), (format_priority(task.priority), prio_theme), ("\n", "#a1a1aa"),
             ("Progress:    ", "bold #a1a1aa"), (f"{task.progress}%\n", "#e4e4e7"),
             ("Assignee:    ", "bold #a1a1aa"), ("@" + task.assignee if task.assignee else "Unassigned", "#34d399"), ("\n", "#a1a1aa"),
             ("Created:     ", "bold #a1a1aa"), (f"{format_datetime(task.created_at)}\n", "#e4e4e7"),
@@ -684,7 +714,7 @@ class HiveTUIApp(App):
             decision_content.append("[bold underline #34d399]Task Decisions:[/bold underline #34d399]")
             for d in decisions:
                 decision_content.append(
-                    f"[bold #f4f4f5]{d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
+                    f"[bold #f4f4f5][{d.id}] {d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
                     f"[italic #a1a1aa]Context:[/italic #a1a1aa] [#e4e4e7]{d.context}[/#e4e4e7]\n"
                     f"[bold #34d399]Decision:[/bold #34d399] [#e4e4e7]{d.decision}[/#e4e4e7]\n"
                     f"[#323232]──────────────────────────────────────────────────[/#323232]"
@@ -703,9 +733,13 @@ class HiveTUIApp(App):
             time_str = format_datetime(e.created_at)
             task_log.write(f"[#71717a][{time_str}][/#71717a] [#22d3ee]@{e.actor}[/#22d3ee] [bold #34d399]{e.event_type.upper()}[/bold #34d399]: [#e4e4e7]{e.details}[/#e4e4e7]")
 
-        self.query_one("#btn-claim", Button).disabled = False
-        self.query_one("#btn-status", Button).disabled = False
-        self.query_one("#btn-complete", Button).disabled = False
+        is_done = task.status.lower() == "done"
+        has_assignee = task.assignee is not None
+        self.query_one("#btn-claim", Button).disabled = is_done
+        self.query_one("#btn-status", Button).disabled = is_done
+        self.query_one("#btn-complete", Button).disabled = is_done
+        self.query_one("#btn-unclaim", Button).disabled = is_done or not has_assignee
+        self.query_one("#btn-reopen", Button).disabled = not is_done
 
     def _update_empty_details_ui(self) -> None:
         details_box = self.query_one("#details-view", Static)
@@ -728,10 +762,14 @@ class HiveTUIApp(App):
         self.query_one("#btn-claim", Button).disabled = True
         self.query_one("#btn-status", Button).disabled = True
         self.query_one("#btn-complete", Button).disabled = True
+        self.query_one("#btn-unclaim", Button).disabled = True
+        self.query_one("#btn-reopen", Button).disabled = True
 
     # --- Interactive Event Handlers ---
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        if getattr(self, "is_refreshing", False):
+            return
         row_key = event.row_key.value
         if row_key:
             new_id = int(row_key)
@@ -740,6 +778,8 @@ class HiveTUIApp(App):
                 self.run_worker(self.async_refresh_task_details(), group="db_sync")
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        if getattr(self, "is_refreshing", False):
+            return
         row_key = event.row_key.value
         if row_key:
             new_id = int(row_key)
@@ -833,10 +873,30 @@ class HiveTUIApp(App):
                 self.notify("No task selected.", severity="warning")
                 return
             self.run_worker(self.async_complete_task(self.selected_task_id), group="db_sync")
+        elif btn_id == "btn-unclaim":
+            if not self.selected_task_id:
+                self.notify("No task selected.", severity="warning")
+                return
+            self.run_worker(self.async_unclaim_task(self.selected_task_id), group="db_sync")
+        elif btn_id == "btn-reopen":
+            if not self.selected_task_id:
+                self.notify("No task selected.", severity="warning")
+                return
+            self.run_worker(self.async_reopen_task(self.selected_task_id), group="db_sync")
 
     async def async_complete_task(self, task_id: int) -> None:
         await asyncio.to_thread(self._db_complete_task, task_id)
         self.notify(f"Completed task #{task_id}")
+        await self.async_refresh_all()
+
+    async def async_unclaim_task(self, task_id: int) -> None:
+        await asyncio.to_thread(self._db_unclaim_task, task_id)
+        self.notify(f"Unclaimed/reopened task #{task_id}")
+        await self.async_refresh_all()
+
+    async def async_reopen_task(self, task_id: int) -> None:
+        await asyncio.to_thread(self._db_reopen_task, task_id)
+        self.notify(f"Reopened task #{task_id}")
         await self.async_refresh_all()
 
     # --- Interactive Form Event Handlers ---
@@ -850,14 +910,22 @@ class HiveTUIApp(App):
             if val:
                 self.query_one("#new-task-desc", Input).focus()
         elif input_id == "new-task-desc":
+            self.query_one("#new-task-type", Input).focus()
+        elif input_id == "new-task-type":
             title = self.query_one("#new-task-title", Input).value.strip()
+            desc = self.query_one("#new-task-desc", Input).value.strip()
+            task_type = val or "feature"
             if not title:
                 self.notify("Task title is required.", severity="error")
                 return
+            if task_type.lower() not in ["feature", "bug", "issue", "chore"]:
+                self.notify("Type must be: feature, bug, issue, or chore.", severity="error")
+                return
             self.query_one("#new-task-title", Input).value = ""
-            event.input.value = ""
+            self.query_one("#new-task-desc", Input).value = ""
+            event.input.value = "feature"
             self.query_one("#new-task-title", Input).focus()
-            self.run_worker(self.async_create_task(title, val), group="db_sync")
+            self.run_worker(self.async_create_task(title, desc, task_type), group="db_sync")
             
         # 2. Add Task Comment Form
         elif input_id == "new-task-comment-input":
@@ -947,8 +1015,8 @@ class HiveTUIApp(App):
 
     # --- Async operations connected to database helper threads ---
 
-    async def async_create_task(self, title: str, description: Optional[str]) -> None:
-        await asyncio.to_thread(self._db_create_task, title, description)
+    async def async_create_task(self, title: str, description: Optional[str], task_type: str = "feature") -> None:
+        await asyncio.to_thread(self._db_create_task, title, description, task_type)
         self.notify(f"Created task: {title}")
         await self.async_refresh_all()
 

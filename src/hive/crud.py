@@ -32,13 +32,15 @@ def create_task(
     title: str,
     description: Optional[str] = None,
     priority: int = 2,
-    assignee: Optional[str] = None
+    assignee: Optional[str] = None,
+    task_type: str = "feature"
 ) -> Task:
     task = Task(
         title=title,
         description=description,
         priority=priority,
         assignee=assignee,
+        task_type=task_type,
         status="todo",
         progress=0
     )
@@ -49,7 +51,7 @@ def create_task(
     log_event(
         session=session,
         event_type="task_created",
-        details=f"Created task: '{title}' (Priority: P{priority})",
+        details=f"Created task: '{title}' (Type: {task_type}, Priority: P{priority})",
         task_id=task.id
     )
     return task
@@ -85,7 +87,8 @@ def update_task(
     status: Optional[str] = None,
     priority: Optional[int] = None,
     progress: Optional[int] = None,
-    assignee: Optional[str] = None
+    assignee: Optional[str] = None,
+    task_type: Optional[str] = None
 ) -> Optional[Task]:
     task = get_task(session, task_id)
     if not task:
@@ -107,9 +110,14 @@ def update_task(
     if progress is not None and progress != task.progress:
         changes.append(f"progress: {task.progress}% -> {progress}%")
         task.progress = progress
-    if assignee is not None and assignee != task.assignee:
-        changes.append(f"assignee: '{task.assignee}' -> '{assignee}'")
-        task.assignee = assignee
+    if task_type is not None and task_type != task.task_type:
+        changes.append(f"task_type: '{task.task_type}' -> '{task_type}'")
+        task.task_type = task_type
+    if assignee is not None:
+        new_assignee = None if assignee.lower() in ["", "none", "unassigned"] else assignee
+        if new_assignee != task.assignee:
+            changes.append(f"assignee: '{task.assignee}' -> '{new_assignee}'")
+            task.assignee = new_assignee
         
     if changes:
         task.updated_at = datetime.now(timezone.utc)
@@ -307,6 +315,42 @@ def add_decision(
         task_id=task_id,
         actor=author
     )
+    return decision
+
+def update_decision(
+    session: Session,
+    decision_id: int,
+    title: Optional[str] = None,
+    context: Optional[str] = None,
+    decision_text: Optional[str] = None
+) -> Optional[Decision]:
+    statement = select(Decision).where(Decision.id == decision_id)
+    decision = session.exec(statement).first()
+    if not decision:
+        return None
+    
+    changes = []
+    if title is not None and title != decision.title:
+        changes.append(f"title: '{decision.title}' -> '{title}'")
+        decision.title = title
+    if context is not None and context != decision.context:
+        changes.append("context updated")
+        decision.context = context
+    if decision_text is not None and decision_text != decision.decision:
+        changes.append("decision text updated")
+        decision.decision = decision_text
+        
+    if changes:
+        session.add(decision)
+        session.commit()
+        session.refresh(decision)
+        t_msg = f" for Task {decision.task_id}" if decision.task_id else ""
+        log_event(
+            session=session,
+            event_type="decision_updated",
+            details=f"Updated decision{t_msg}: '{decision.title}'",
+            task_id=decision.task_id
+        )
     return decision
 
 def get_decisions(session: Session, task_id: Optional[int] = None, project_only: bool = False) -> List[Decision]:

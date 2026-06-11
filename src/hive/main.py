@@ -74,8 +74,8 @@ def learn():
         project = crud.get_project(session)
         tasks = crud.list_tasks(session)
         memories = crud.list_memories(session)
-        decisions = crud.get_decisions(session, project_only=True)
-        comments = crud.get_comments(session, project_only=True)
+        decisions = crud.get_decisions(session, project_only=False)
+        comments = crud.get_comments(session, project_only=False)
         events = crud.get_events(session, limit=100)
         
         console.print(f"\n=== PROJECT: {project.name} ===")
@@ -87,23 +87,27 @@ def learn():
         if not memories: console.print("None")
         for m in memories: console.print(f"- {m.key}: {m.value}")
             
-        console.print("\n=== PROJECT DECISIONS ===")
+        console.print("\n=== DECISIONS ===")
         if not decisions: console.print("None")
-        for d in decisions: console.print(f"- {d.title}: {d.decision} (Context: {d.context})")
+        for d in decisions:
+            t_prefix = f" [Task #{d.task_id}]" if d.task_id else ""
+            console.print(f"- [{d.id}]{t_prefix} {d.title}: {d.decision} (Context: {d.context})")
             
-        console.print("\n=== PROJECT COMMENTS ===")
+        console.print("\n=== COMMENTS ===")
         if not comments: console.print("None")
-        for c in comments: console.print(f"- {c.author}: {c.content}")
+        for c in comments:
+            t_prefix = f" [Task #{c.task_id}]" if c.task_id else ""
+            console.print(f"-{t_prefix} {c.author}: {c.content}")
             
         console.print("\n=== TASKS ===")
         open_tasks = [t for t in tasks if t.status != "done"]
         closed_tasks = [t for t in tasks if t.status == "done"]
         console.print(f"Open Tasks ({len(open_tasks)}):")
         for t in open_tasks:
-            console.print(f"  [{t.id}] {t.title} (Status: {t.status}, Progress: {t.progress}%)")
+            console.print(f"  [{t.id}] {t.title} (Type: {t.task_type}, Status: {t.status}, Progress: {t.progress}%)")
         console.print(f"\nClosed Tasks ({len(closed_tasks)}):")
         for t in closed_tasks:
-            console.print(f"  [{t.id}] {t.title}")
+            console.print(f"  [{t.id}] {t.title} (Type: {t.task_type})")
             
         console.print("\n=== RECENT ACTIVITY FEED ===")
         if not events: console.print("None")
@@ -116,15 +120,19 @@ def task_add(
     title: str = typer.Argument(..., help="Task title"),
     description: Optional[str] = typer.Option(None, "--desc", "-d", help="Task description"),
     priority: int = typer.Option(2, "--priority", "-p", help="Priority: 0(Critical)-4(Backlog)"),
-    assignee: Optional[str] = typer.Option(None, "--assignee", "-a", help="Assignee name")
+    assignee: Optional[str] = typer.Option(None, "--assignee", "-a", help="Assignee name"),
+    task_type: str = typer.Option("feature", "--type", "-y", help="Task type (feature, bug, issue, chore)")
 ):
     """Create a new task."""
     if priority < 0 or priority > 4:
         console.print("[red]Error: Priority must be between 0 (Critical) and 4 (Backlog)[/red]")
         raise typer.Exit(1)
+    if task_type.lower() not in ["feature", "bug", "issue", "chore"]:
+        console.print("[red]Error: Type must be one of: feature, bug, issue, chore[/red]")
+        raise typer.Exit(1)
         
     with get_session() as session:
-        task = crud.create_task(session, title, description, priority, assignee)
+        task = crud.create_task(session, title, description, priority, assignee, task_type.lower())
         console.print(f"[green]Successfully created task #{task.id}: [bold]{task.title}[/bold][/green]")
 
 @app.command("task-list")
@@ -142,6 +150,7 @@ def task_list(
         table = Table(title="Hive Tasks", show_header=True, header_style="bold blue")
         table.add_column("ID", style="bold blue", width=6)
         table.add_column("Title", style="bold white", width=30)
+        table.add_column("Type", width=12)
         table.add_column("Status", width=15)
         table.add_column("Priority", width=12)
         table.add_column("Progress", width=10)
@@ -163,14 +172,23 @@ def task_list(
             4: "dim white"
         }
         
+        type_colors = {
+            "feature": "bold green",
+            "bug": "bold red",
+            "issue": "bold yellow",
+            "chore": "dim white"
+        }
+        
         for t in tasks:
             status_style = status_colors.get(t.status, "white")
             priority_style = priority_colors.get(t.priority, "white")
+            type_style = type_colors.get(t.task_type.lower(), "white")
             p_bar = f"{t.progress}%"
             
             table.add_row(
                 f"#{t.id}",
                 t.title,
+                f"[{type_style}]{t.task_type.upper()}[/{type_style}]",
                 f"[{status_style}]{format_status(t.status)}[/{status_style}]",
                 f"[{priority_style}]{format_priority(t.priority)}[/{priority_style}]",
                 p_bar,
@@ -188,6 +206,7 @@ def task_update(
     priority: Optional[int] = typer.Option(None, "--priority", "-p", help="Update priority (0-4)"),
     progress: Optional[int] = typer.Option(None, "--progress", "-g", help="Update progress percentage (0-100)"),
     assignee: Optional[str] = typer.Option(None, "--assignee", "-a", help="Update assignee name"),
+    task_type: Optional[str] = typer.Option(None, "--type", "-y", help="Update task type (feature, bug, issue, chore)"),
     claim: bool = typer.Option(False, "--claim", help="Claim this task for yourself (sets status to in_progress)")
 ):
     """Update an existing task's fields, or claim/complete it."""
@@ -199,6 +218,9 @@ def task_update(
         raise typer.Exit(1)
     if status is not None and status.lower() not in ["todo", "in_progress", "review", "done"]:
         console.print("[red]Error: Status must be one of: todo, in_progress, review, done[/red]")
+        raise typer.Exit(1)
+    if task_type is not None and task_type.lower() not in ["feature", "bug", "issue", "chore"]:
+        console.print("[red]Error: Type must be one of: feature, bug, issue, chore[/red]")
         raise typer.Exit(1)
         
     with get_session() as session:
@@ -214,12 +236,17 @@ def task_update(
             status=status.lower() if status else None,
             priority=priority,
             progress=progress,
-            assignee=assignee
+            assignee=assignee,
+            task_type=task_type.lower() if task_type else None
         )
         if not task:
             console.print(f"[red]Error: Task #{task_id} not found.[/red]")
             raise typer.Exit(1)
         console.print(f"[green]Successfully updated task #{task.id}[/green]")
+        
+        # Prompt agent to update project state if task is completed
+        if task.status == "done" and task.progress == 100:
+            console.print("[yellow]💡 Task completed! Please consider updating overall project details, decisions, memories, or progress status (`hive status`), or add a project-level progress comment if this is a major change.[/yellow]")
 
 @app.command("task-show")
 def task_show(task_id: int = typer.Argument(..., help="Task ID to show")):
@@ -237,10 +264,12 @@ def task_show(task_id: int = typer.Argument(..., help="Task ID to show")):
         
         priority_style = {0: "bold red", 1: "red", 2: "orange3", 3: "blue", 4: "dim white"}.get(task.priority, "white")
         status_style = {"todo": "dim white", "in_progress": "bold blue", "review": "bold yellow", "done": "bold green"}.get(task.status, "white")
+        type_style = {"feature": "bold green", "bug": "bold red", "issue": "bold yellow", "chore": "dim white"}.get(task.task_type.lower(), "white")
         
         details_text = (
             f"[bold]Title:[/bold] {task.title}\n"
             f"[bold]Description:[/bold] {task.description or 'No description'}\n\n"
+            f"[bold]Type:[/bold] [{type_style}]{task.task_type.upper()}[/{type_style}]  |  "
             f"[bold]Status:[/bold] [{status_style}]{format_status(task.status)}[/{status_style}]  |  "
             f"[bold]Priority:[/bold] [{priority_style}]{format_priority(task.priority)}[/{priority_style}]  |  "
             f"[bold]Progress:[/bold] {task.progress}%\n"
@@ -270,7 +299,7 @@ def task_show(task_id: int = typer.Argument(..., help="Task ID to show")):
         dec_lines = []
         if decisions:
             for dec in decisions:
-                dec_lines.append(f"[bold]{dec.title}[/bold] by [cyan]{dec.author}[/cyan] ({format_datetime(dec.created_at)})\nContext: {dec.context}\nDecision: {dec.decision}\n---")
+                dec_lines.append(f"[bold][{dec.id}] {dec.title}[/bold] by [cyan]{dec.author}[/cyan] ({format_datetime(dec.created_at)})\nContext: {dec.context}\nDecision: {dec.decision}\n---")
         else:
             dec_lines.append("No decisions recorded for this task.")
         console.print(Panel("\n".join(dec_lines), title="Decisions", border_style="magenta"))
@@ -302,6 +331,21 @@ def log_decision(
                 raise typer.Exit(1)
         crud.add_decision(session, task_id, title, context, decision_text, author)
         console.print(f"[green]Recorded decision: [bold]{title}[/bold][/green]")
+
+@app.command("edit-decision")
+def edit_decision(
+    decision_id: int = typer.Argument(..., help="Decision ID to update"),
+    title: Optional[str] = typer.Option(None, "--title", help="Update title"),
+    context: Optional[str] = typer.Option(None, "--context", help="Update context"),
+    decision_text: Optional[str] = typer.Option(None, "--decision", help="Update decision details")
+):
+    """Edit/Update an existing decision."""
+    with get_session() as session:
+        decision = crud.update_decision(session, decision_id, title, context, decision_text)
+        if not decision:
+            console.print(f"[red]Error: Decision #{decision_id} not found.[/red]")
+            raise typer.Exit(1)
+        console.print(f"[green]Successfully updated decision #{decision_id}[/green]")
 
 @app.command("log-comment")
 def log_comment(

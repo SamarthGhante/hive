@@ -9,6 +9,7 @@ class Task(SQLModel, table=True):
     status: str = Field(default="todo")  # todo, in_progress, review, done
     priority: int = Field(default=2)    # 0=Critical, 1=High, 2=Medium, 3=Low, 4=Backlog
     progress: int = Field(default=0)    # 0 to 100
+    task_type: str = Field(default="feature")  # feature, bug, issue, chore
     assignee: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

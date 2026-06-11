@@ -45,11 +45,30 @@ def get_engine():
     return create_engine(url, connect_args=connect_args)
 
 def init_db() -> None:
-    """Create all database tables."""
+    """Create all database tables and apply schema updates if needed."""
     # Ensure models are imported so SQLModel knows about them
+    from hive.models import Task, Project, Comment, Decision, Memory, Event
     
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
+    
+    # Run migrations for existing sqlite databases
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    
+    # Check project table columns
+    if "project" in inspector.get_table_names():
+        proj_cols = [c["name"] for c in inspector.get_columns("project")]
+        if "progress" not in proj_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE project ADD COLUMN progress VARCHAR"))
+                
+    # Check task table columns
+    if "task" in inspector.get_table_names():
+        task_cols = [c["name"] for c in inspector.get_columns("task")]
+        if "task_type" not in task_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE task ADD COLUMN task_type VARCHAR DEFAULT 'feature'"))
 
 @contextmanager
 def get_session() -> Generator[Session, None, None]:

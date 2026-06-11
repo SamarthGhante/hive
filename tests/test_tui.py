@@ -41,8 +41,13 @@ async def test_tui_mount():
         desc_input.value = "Test Task Description"
         await pilot.press("enter")
         
+        type_input = app.query_one("#new-task-type")
+        type_input.focus()
+        type_input.value = "bug"
+        await pilot.press("enter")
+        
         # Pause to let the background database worker complete and update table rows
-        await pilot.pause(0.2)
+        await pilot.pause(0.5)
         
         # Verify table has updated with the newly created task
         table = app.query_one("#task-table")

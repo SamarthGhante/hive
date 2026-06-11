@@ -156,3 +156,27 @@ def test_cli_setup_auto_agents():
             agents_path.unlink()
         if has_agents and backup_path.exists():
             backup_path.rename(agents_path)
+
+def test_cli_task_type_and_unassign():
+    result = runner.invoke(app, ["task-add", "Bug Task", "--type", "bug"])
+    assert result.exit_code == 0
+    assert "Successfully created task" in result.stdout
+    
+    result = runner.invoke(app, ["task-update", "1", "--status", "done", "--progress", "100"])
+    assert result.exit_code == 0
+    assert "Task completed!" in result.stdout
+    
+    result = runner.invoke(app, ["task-update", "1", "--assignee", "none", "--status", "todo", "--progress", "0"])
+    assert result.exit_code == 0
+    assert "Successfully updated task" in result.stdout
+    
+    result = runner.invoke(app, ["task-show", "1"])
+    assert "Unassigned" in result.stdout
+
+def test_cli_edit_decision():
+    runner.invoke(app, ["task-add", "Decision Task"])
+    runner.invoke(app, ["log-decision", "Dec Title", "Dec Context", "Dec Details", "--task", "1"])
+    
+    result = runner.invoke(app, ["edit-decision", "1", "--title", "Updated Title", "--decision", "Updated Details"])
+    assert result.exit_code == 0
+    assert "Successfully updated decision" in result.stdout
