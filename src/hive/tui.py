@@ -60,6 +60,7 @@ class HiveTUIApp(App):
         text-style: bold;
         height: 1;
         border-bottom: solid $border;
+        text-align: center;
     }
 
     Footer {
