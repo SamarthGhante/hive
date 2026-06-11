@@ -13,6 +13,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.console import Group
 from rich.table import Table
+from rich.rule import Rule
 
 from hive.database import get_session
 import hive.crud as crud
@@ -20,8 +21,8 @@ from hive.models import Task, Project
 from hive.utils import get_current_actor, format_priority, format_status, format_datetime
 
 class HiveTUIApp(App):
-    TITLE = "Hive Coordination Dashboard"
-    SUBTITLE = "Collaborative Execution Layer"
+    TITLE = "Hive"
+    SUBTITLE = None
     theme = "textual-dark"
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -90,36 +91,39 @@ class HiveTUIApp(App):
     #nav-logo {
         text-style: bold;
         color: #a1a1aa;
-        margin-right: 2;
+        margin-left: 2;
+        margin-right: 1;
         content-align: center middle;
-        height: 100%;
+        height: 1;
     }
     
     #nav-buttons {
         layout: horizontal;
-        height: 100%;
+        height: 1;
         width: auto;
     }
     
     .nav-btn {
-        background: transparent;
+        background: #18181b;
         color: #a1a1aa;
-        border: none;
-        height: 100%;
+        border: round #2e2e33;
+        height: 1;
         margin-right: 1;
-        min-width: 16;
+        min-width: 14;
+        padding: 0 1;
     }
     
     .nav-btn:hover {
         background: #2e2e33;
-        color: #a1a1aa;
+        color: #f4f4f5;
+        border: round #3f3f46;
     }
     
     .nav-btn.-active {
         background: #2e2e33;
         color: #f4f4f5;
+        border: round #6366f1;
         text-style: bold;
-        border-bottom: solid #6366f1;
     }
     
     #nav-stats {
@@ -153,7 +157,7 @@ class HiveTUIApp(App):
     .left-column {
         width: 45%;
         height: 100%;
-        border: solid #2e2e33;
+        border: round #2e2e33;
         padding: 0 1;
         margin-right: 1;
         background: #202023;
@@ -162,7 +166,7 @@ class HiveTUIApp(App):
     .right-column {
         width: 55%;
         height: 100%;
-        border: solid #2e2e33;
+        border: round #2e2e33;
         padding: 0 1;
         margin-left: 1;
         background: #202023;
@@ -177,7 +181,7 @@ class HiveTUIApp(App):
     
     #task-table {
         height: 1fr;
-        border: solid #2e2e33;
+        border: round #2e2e33;
         background: #18181b;
     }
     
@@ -204,13 +208,13 @@ class HiveTUIApp(App):
     
     Input {
         background: #18181b;
-        border: solid #2e2e33;
+        border: round #2e2e33;
         color: #e4e4e7;
         margin-bottom: 0;
     }
     
     Input:focus {
-        border: solid #3f3f46;
+        border: round #3f3f46;
     }
     
     TabbedContent {
@@ -241,7 +245,7 @@ class HiveTUIApp(App):
     
     .scrollable-pane {
         height: 1fr;
-        border: solid #2e2e33;
+        border: round #2e2e33;
         padding: 0 1;
         background: #18181b;
         margin-bottom: 0;
@@ -268,6 +272,7 @@ class HiveTUIApp(App):
     .action-btn {
         margin: 0 1;
         min-width: 16;
+        height: 1;
     }
     
     .input-box-pane {
@@ -280,7 +285,7 @@ class HiveTUIApp(App):
     #task-feed-log, #project-feed-log {
         height: 1fr;
         background: #18181b;
-        border: solid #2e2e33;
+        border: round #2e2e33;
         padding: 0 1;
     }
     
@@ -288,7 +293,7 @@ class HiveTUIApp(App):
         background: #2e2e33;
         color: #e4e4e7;
         border: none;
-        height: 3;
+        height: 1;
     }
     
     Button:hover {
@@ -302,7 +307,7 @@ class HiveTUIApp(App):
     #btn-claim {
         background: #202023;
         color: #a1a1aa;
-        border: solid #3f3f46;
+        border: round #3f3f46;
     }
     
     #btn-claim:hover {
@@ -313,7 +318,7 @@ class HiveTUIApp(App):
     #btn-status {
         background: #202023;
         color: #a1a1aa;
-        border: solid #3f3f46;
+        border: round #3f3f46;
     }
     
     #btn-status:hover {
@@ -324,6 +329,7 @@ class HiveTUIApp(App):
     #btn-complete {
         background: #166534;
         color: #ffffff;
+        border: round #15803d;
     }
     
     #btn-complete:hover {
@@ -338,11 +344,11 @@ class HiveTUIApp(App):
         with Vertical(id="app-container"):
             # Top Navigation Bar
             with Horizontal(id="top-nav"):
-                yield Label("H I V E", id="nav-logo")
                 with Horizontal(id="nav-buttons"):
                     yield Button("Task Board", id="nav-tasks", classes="nav-btn -active")
                     yield Button("Project Hub", id="nav-project", classes="nav-btn")
                 yield Static(id="nav-stats")
+                yield Label("H I V E", id="nav-logo")
             
             # Bottom Main Content area
             with Vertical(id="main-content"):
@@ -646,12 +652,16 @@ class HiveTUIApp(App):
             assignees = {t.assignee for t in tasks if t.assignee}
             
             # Build project overview details
-            info_text = Text.assemble(
-                ("Project Name: ", "bold #fde047"), (f"{project.name}\n\n", "#e4e4e7"),
-                ("Details:      ", "bold #a1a1aa"), (f"{project.details or 'No details.'}\n\n", "#e4e4e7"),
-                ("Overall Idea: ", "bold #a1a1aa"), (f"{project.overall_idea or 'No overall idea.'}\n\n", "#e4e4e7"),
-                ("Last Updated: ", "bold #a1a1aa"), (f"{format_datetime(project.updated_at)}\n\n", "#e4e4e7")
-            )
+            # Project Profile Info Grid
+            info_table = Table.grid(padding=(0, 2))
+            info_table.add_column(style="bold #a1a1aa", width=16)
+            info_table.add_column(style="#e4e4e7")
+            
+            info_table.add_row("Project Name:", f"[bold #f4f4f5]{project.name}[/bold #f4f4f5]")
+            info_table.add_row("Last Updated:", format_datetime(project.updated_at))
+            
+            details_content = project.details or "No details provided."
+            idea_content = project.overall_idea or "No overall idea recorded."
             
             # Create a beautiful grid for task stats
             stats_table = Table.grid(padding=(0, 2))
@@ -669,10 +679,18 @@ class HiveTUIApp(App):
             stats_table.add_row("Team Size:", f"[#e4e4e7]{len(assignees)} active member(s)[/#e4e4e7]")
             
             group = Group(
-                info_text,
-                Panel(stats_table, title="[bold #a1a1aa]Task Statistics[/bold #a1a1aa]", border_style="#3f3f46")
+                Text("\n"),
+                info_table,
+                Text("\n"),
+                Rule("Description", style="#2e2e33"),
+                Text(f"\n{details_content}\n", style="#e4e4e7"),
+                Rule("Overall Idea", style="#2e2e33"),
+                Text(f"\n{idea_content}\n", style="#e4e4e7"),
+                Rule("Metrics", style="#2e2e33"),
+                Text("\n"),
+                Panel(stats_table, title="Task Statistics", border_style="#2e2e33")
             )
-            info_box.update(Panel(group, title=Text("Project Hub Status", style="bold #a1a1aa"), border_style="#3f3f46"))
+            info_box.update(Panel(group, title=Text("Project Profile", style="bold #a1a1aa"), border_style="#3f3f46"))
             
             # Populate form inputs with current values if they are empty
             name_input = self.query_one("#project-name-input", Input)
