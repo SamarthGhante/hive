@@ -155,7 +155,7 @@ class HiveTUIApp(App):
                             Static(id="details-view"),
                             Horizontal(
                                 Button("Claim Task (c)", id="btn-claim", variant="primary", classes="action-btn"),
-                                Button("Cycle Status (s)", id="btn-status", variant="secondary", classes="action-btn"),
+                                Button("Cycle Status (s)", id="btn-status", variant="default", classes="action-btn"),
                                 Button("Complete Task", id="btn-complete", variant="success", classes="action-btn"),
                                 id="details-actions"
                             )

@@ -3,3 +3,4 @@
 {"id":"int-c52c5f00","kind":"field_change","created_at":"2026-06-11T08:42:07.105150805Z","actor":"Samarth","issue_id":"hive-crw","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-d93612dd","kind":"field_change","created_at":"2026-06-11T08:42:34.408350318Z","actor":"Samarth","issue_id":"hive-ygj","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-cfea154f","kind":"field_change","created_at":"2026-06-11T08:43:42.718782673Z","actor":"Samarth","issue_id":"hive-xsn","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-6be1e87c","kind":"field_change","created_at":"2026-06-11T08:47:04.500449288Z","actor":"Samarth","issue_id":"hive-9ap","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
