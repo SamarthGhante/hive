@@ -597,11 +597,7 @@ class HiveTUIApp(App):
         
         # Centerized placeholder logic if no comments
         if not comments:
-            comments_box.update(Panel(
-                Text("\n\nNo project comments yet.\n\nType in the form below to add one.", style="white"),
-                border_style="none",
-                box=None
-            ))
+            comments_box.update(Text("\n\nNo project comments yet.\n\nType in the form below to add one.", style="white"))
             comments_box.set_class(True, "placeholder-style")
         else:
             comments_box.update("\n".join(comment_content))
@@ -617,11 +613,7 @@ class HiveTUIApp(App):
             )
         
         if not decisions:
-            decisions_box.update(Panel(
-                Text("\n\nNo project decisions recorded yet.\n\nRecord one using the form below.", style="white"),
-                border_style="none",
-                box=None
-            ))
+            decisions_box.update(Text("\n\nNo project decisions recorded yet.\n\nRecord one using the form below.", style="white"))
             decisions_box.set_class(True, "placeholder-style")
         else:
             decisions_box.update("\n".join(decision_content))
@@ -632,11 +624,7 @@ class HiveTUIApp(App):
             memory_lines.append(f"[bold #fbbf24]{m.key}[/bold #fbbf24] = [#e4e4e7]{m.value}[/#e4e4e7] [#71717a]({format_datetime(m.updated_at)})[/#71717a]\n[#323232]──────────────────────────────────────────────────[/#323232]")
         
         if not memories:
-            memories_box.update(Panel(
-                Text("\n\nNo project memories stored yet.\n\nAdd one using the form below.", style="white"),
-                border_style="none",
-                box=None
-            ))
+            memories_box.update(Text("\n\nNo project memories stored yet.\n\nAdd one using the form below.", style="white"))
             memories_box.set_class(True, "placeholder-style")
         else:
             memories_box.update("\n".join(memory_lines))
@@ -687,11 +675,7 @@ class HiveTUIApp(App):
             comment_content.append(f"[bold #60a5fa]@{c.author}[/] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
         
         if not comments:
-            comments_box.update(Panel(
-                Text("\n\nNo comments yet.\n\nType in the form below to add one.", style="white"),
-                border_style="none",
-                box=None
-            ))
+            comments_box.update(Text("\n\nNo comments yet.\n\nType in the form below to add one.", style="white"))
             comments_box.set_class(True, "placeholder-style")
         else:
             comments_box.update("\n".join(comment_content))
@@ -710,11 +694,7 @@ class HiveTUIApp(App):
                 )
         
         if not decisions:
-            decisions_box.update(Panel(
-                Text("\n\nNo decisions recorded for this task yet.\n\nRecord one using the form below.", style="white"),
-                border_style="none",
-                box=None
-            ))
+            decisions_box.update(Text("\n\nNo decisions recorded for this task yet.\n\nRecord one using the form below.", style="white"))
             decisions_box.set_class(True, "placeholder-style")
         else:
             decisions_box.update("\n".join(decision_content))
@@ -736,25 +716,13 @@ class HiveTUIApp(App):
         decisions_box = self.query_one("#task-decisions-list", Static)
         task_log = self.query_one("#task-feed-log", RichLog)
 
-        details_box.update(Panel(
-            Text("\n\nNo tasks found.\n\nUse the Quick Create form on the left to create a task.", style="white"),
-            border_style="none",
-            box=None
-        ))
+        details_box.update(Text("\n\nNo tasks found.\n\nUse the Quick Create form on the left to create a task.", style="white"))
         details_box.set_class(True, "placeholder-style")
 
-        comments_box.update(Panel(
-            Text("\n\nNo task selected.", style="white"),
-            border_style="none",
-            box=None
-        ))
+        comments_box.update(Text("\n\nNo task selected.", style="white"))
         comments_box.set_class(True, "placeholder-style")
 
-        decisions_box.update(Panel(
-            Text("\n\nNo task selected.", style="white"),
-            border_style="none",
-            box=None
-        ))
+        decisions_box.update(Text("\n\nNo task selected.", style="white"))
         decisions_box.set_class(True, "placeholder-style")
 
         task_log.clear()
