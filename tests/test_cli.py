@@ -111,3 +111,48 @@ def test_cli_feed_filtering():
     result = runner.invoke(app, ["feed", "--task", "1"])
     assert result.exit_code == 0
     assert "TASK_CREATED" in result.stdout
+
+def test_cli_init_agents():
+    import pathlib
+    agents_path = pathlib.Path("AGENTS.md")
+    backup_path = pathlib.Path("AGENTS.md.bak")
+    has_agents = agents_path.exists()
+    if has_agents:
+        agents_path.rename(backup_path)
+    
+    try:
+        result = runner.invoke(app, ["init-agents"])
+        assert result.exit_code == 0
+        assert "Successfully generated AGENTS.md" in result.stdout
+        assert agents_path.exists()
+        
+        result = runner.invoke(app, ["init-agents"])
+        assert "already exists" in result.stdout
+        
+        result = runner.invoke(app, ["init-agents", "--force"])
+        assert result.exit_code == 0
+        assert "Successfully generated AGENTS.md" in result.stdout
+    finally:
+        if agents_path.exists():
+            agents_path.unlink()
+        if has_agents and backup_path.exists():
+            backup_path.rename(agents_path)
+
+def test_cli_setup_auto_agents():
+    import pathlib
+    agents_path = pathlib.Path("AGENTS.md")
+    backup_path = pathlib.Path("AGENTS.md.bak")
+    has_agents = agents_path.exists()
+    if has_agents:
+        agents_path.rename(backup_path)
+        
+    try:
+        result = runner.invoke(app, ["setup", "--name", "Auto Agents Project"])
+        assert result.exit_code == 0
+        assert "Generated AGENTS.md template" in result.stdout
+        assert agents_path.exists()
+    finally:
+        if agents_path.exists():
+            agents_path.unlink()
+        if has_agents and backup_path.exists():
+            backup_path.rename(agents_path)

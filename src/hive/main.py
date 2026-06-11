@@ -37,6 +37,29 @@ def setup(
             crud.update_project(session, name=name, details=details, overall_idea=overall_idea)
             console.print("[green]Project updated successfully.[/green]")
 
+    # Auto-generate AGENTS.md if it doesn't exist
+    import pathlib
+    agents_path = pathlib.Path("AGENTS.md")
+    if not agents_path.exists():
+        from hive.templates import AGENTS_TEMPLATE
+        agents_path.write_text(AGENTS_TEMPLATE, encoding="utf-8")
+        console.print("[green]Generated AGENTS.md template for agent guidelines.[/green]")
+
+@app.command("init-agents")
+def init_agents(
+    force: bool = typer.Option(False, "--force", "-f", help="Force overwrite AGENTS.md if it exists")
+):
+    """Generate the AGENTS.md workflow and instruction manual in the current directory."""
+    import pathlib
+    from hive.templates import AGENTS_TEMPLATE
+    agents_path = pathlib.Path("AGENTS.md")
+    if agents_path.exists() and not force:
+        console.print("[yellow]AGENTS.md already exists in the current directory. Use --force to overwrite it.[/yellow]")
+        raise typer.Exit()
+    
+    agents_path.write_text(AGENTS_TEMPLATE, encoding="utf-8")
+    console.print("[green]Successfully generated AGENTS.md in the current directory.[/green]")
+
 @app.command("status")
 def status(progress: str = typer.Argument(..., help="Project progress summary")):
     """Quickly update the project's overall progress string."""
