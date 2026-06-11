@@ -76,9 +76,8 @@ class HiveTUIApp(App):
 
     #nav-tabs {
         width: 100%;
-        height: auto;
+        height: 3;
         background: $surface;
-        dock: top;
     }
 
     #nav-tabs Tab {
