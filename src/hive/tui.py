@@ -6,11 +6,13 @@ from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.widgets import (
     Header, Footer, Static, DataTable, TabbedContent, TabPane, 
-    Button, Input, Label, RichLog
+    Button, Input, Label, RichLog, ContentSwitcher
 )
 from textual.reactive import reactive
 from rich.panel import Panel
 from rich.text import Text
+from rich.console import Group
+from rich.table import Table
 
 from hive.database import get_session
 import hive.crud as crud
@@ -26,109 +28,190 @@ class HiveTUIApp(App):
         ("c", "claim_selected", "Claim Task"),
         ("s", "cycle_status", "Cycle Status"),
         ("n", "focus_new_task", "New Task Input"),
+        ("t", "switch_to_tasks", "Task Board"),
+        ("p", "switch_to_project", "Project Hub"),
     ]
 
     CSS = """
     Screen {
-        background: #020617;
-        color: #f8fafc;
+        background: #18181b;
+        color: #e4e4e7;
     }
     
-    TabbedContent {
-        background: #020617;
+    #app-container {
+        layout: vertical;
+        height: 1fr;
+        width: 100%;
     }
     
-    Tabs {
-        background: #0b0f19;
-        border-bottom: solid #1e293b;
+    #top-nav {
+        height: 3;
+        width: 100%;
+        background: #202023;
+        border-bottom: solid #2e2e33;
+        layout: horizontal;
+        align: left middle;
+        padding: 0 1;
     }
     
-    Tab {
-        color: #64748b;
+    #nav-logo {
+        text-style: bold;
+        color: #a1a1aa;
+        margin-right: 2;
+        content-align: center middle;
+        height: 100%;
+    }
+    
+    #nav-buttons {
+        layout: horizontal;
+        height: 100%;
+        width: auto;
+    }
+    
+    .nav-btn {
+        background: transparent;
+        color: #a1a1aa;
+        border: none;
+        height: 100%;
+        margin-right: 1;
+        min-width: 16;
+    }
+    
+    .nav-btn:hover {
+        background: #2e2e33;
+        color: #a1a1aa;
+    }
+    
+    .nav-btn.-active {
+        background: #2e2e33;
+        color: #f4f4f5;
+        text-style: bold;
+        border-bottom: solid #6366f1;
+    }
+    
+    #nav-stats {
+        height: 100%;
+        color: #a1a1aa;
+        content-align: right middle;
+        width: 1fr;
         text-style: bold;
     }
     
-    Tab:hover {
-        background: #1e293b;
-        color: #38bdf8;
+    #main-content {
+        width: 100%;
+        height: 1fr;
+        background: #18181b;
+        padding: 0 1 1 1;
     }
     
-    Tab.--active {
-        color: #38bdf8;
-        background: #0f172a;
-        border-bottom: solid #38bdf8;
+    ContentSwitcher {
+        height: 1fr;
+        width: 100%;
     }
     
-    .pane-container {
-        layout: grid;
-        grid-size: 2;
-        grid-columns: 40% 60%;
+    .page-container {
+        layout: horizontal;
         height: 100%;
+        width: 100%;
         padding: 0;
         margin: 0;
     }
     
-    .tui-column {
-        border: solid #1e293b;
+    .left-column {
+        width: 45%;
+        height: 100%;
+        border: solid #2e2e33;
         padding: 1;
-        margin: 1;
-        background: #0b0f19;
+        margin-right: 1;
+        background: #202023;
+    }
+    
+    .right-column {
+        width: 55%;
+        height: 100%;
+        border: solid #2e2e33;
+        padding: 1;
+        margin-left: 1;
+        background: #202023;
     }
     
     .section-title {
         text-style: bold;
-        color: #38bdf8;
+        color: #a1a1aa;
         margin-bottom: 1;
-        border-bottom: double #334155;
+        border-bottom: solid #2e2e33;
     }
     
     #task-table {
         height: 1fr;
-        border: solid #1e293b;
-        background: #020617;
+        border: solid #2e2e33;
+        background: #18181b;
     }
     
     DataTable > .datatable--header {
-        background: #0f172a;
-        color: #38bdf8;
+        background: #202023;
+        color: #a1a1aa;
         text-style: bold;
     }
     
     DataTable > .datatable--cursor {
-        background: #2563eb;
+        background: #2e2e33;
         color: #ffffff;
+        text-style: bold;
     }
     
-    #new-task-form, #project-update-form {
+    .form-container {
         height: auto;
-        border-top: solid #1e293b;
+        border-top: solid #2e2e33;
         padding-top: 1;
         margin-top: 1;
         layout: vertical;
-        background: #0f172a;
+        background: #202023;
         padding: 1;
     }
     
-    .input-field {
-        margin-bottom: 1;
-    }
-    
     Input {
-        background: #020617;
-        border: tall #334155;
-        color: #f8fafc;
+        background: #18181b;
+        border: tall #2e2e33;
+        color: #e4e4e7;
         margin-bottom: 1;
     }
     
     Input:focus {
-        border: tall #38bdf8;
+        border: tall #3f3f46;
+    }
+    
+    TabbedContent {
+        background: #18181b;
+        height: 1fr;
+    }
+    
+    Tabs {
+        background: #202023;
+        border-bottom: solid #2e2e33;
+    }
+    
+    Tab {
+        color: #a1a1aa;
+        text-style: bold;
+    }
+    
+    Tab:hover {
+        background: #2e2e33;
+        color: #a1a1aa;
+    }
+    
+    Tab.--active {
+        color: #f4f4f5;
+        background: #18181b;
+        border-bottom: solid #6366f1;
     }
     
     .scrollable-pane {
         height: 1fr;
-        border: solid #1e293b;
+        border: solid #2e2e33;
         padding: 1;
-        background: #020617;
+        background: #18181b;
         margin-bottom: 1;
     }
     
@@ -138,7 +221,7 @@ class HiveTUIApp(App):
     
     #details-view, #project-info-view {
         padding: 1;
-        background: #020617;
+        background: #18181b;
         border: none;
         height: auto;
     }
@@ -157,50 +240,54 @@ class HiveTUIApp(App):
     
     .input-box-pane {
         height: auto;
-        border-top: solid #1e293b;
+        border-top: solid #2e2e33;
         padding-top: 1;
-        background: #0f172a;
+        background: #202023;
         padding: 1;
     }
     
     #task-feed-log, #project-feed-log {
         height: 1fr;
-        background: #020617;
-        border: solid #1e293b;
+        background: #18181b;
+        border: solid #2e2e33;
         padding: 1;
     }
     
     Button {
-        background: #1e293b;
-        color: #e2e8f0;
+        background: #2e2e33;
+        color: #e4e4e7;
         border: none;
         height: 3;
     }
     
     Button:hover {
-        background: #334155;
+        background: #3f3f46;
     }
     
     Button.-active {
-        background: #2563eb;
+        background: #6366f1;
     }
     
     #btn-claim {
-        background: #0f766e;
-        color: #ffffff;
+        background: #202023;
+        color: #a1a1aa;
+        border: solid #3f3f46;
     }
     
     #btn-claim:hover {
-        background: #0d9488;
+        background: #2e2e33;
+        color: #ffffff;
     }
     
     #btn-status {
-        background: #1e293b;
-        color: #e2e8f0;
+        background: #202023;
+        color: #a1a1aa;
+        border: solid #3f3f46;
     }
     
     #btn-status:hover {
-        background: #334155;
+        background: #2e2e33;
+        color: #ffffff;
     }
     
     #btn-complete {
@@ -217,90 +304,101 @@ class HiveTUIApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with TabbedContent(id="top-tabs"):
-            with TabPane("Task Board", id="tab-task-board"):
-                with Container(classes="pane-container"):
-                    # Left Column
-                    with Vertical(id="left-pane", classes="tui-column"):
-                        yield Label("📋 Tasks", classes="section-title")
-                        yield DataTable(id="task-table")
-                        with Vertical(id="new-task-form"):
-                            yield Label("[bold cyan]Quick Create Task[/bold cyan]")
-                            yield Input(placeholder="Task Title...", id="new-task-title")
-                            yield Input(placeholder="Task Description... (Press Enter to save)", id="new-task-desc")
-                    
-                    # Right Column
-                    with Vertical(id="right-pane", classes="tui-column"):
-                        with TabbedContent(id="task-tabs"):
-                            with TabPane("Task Details"):
-                                with VerticalScroll(classes="scrollable-pane"):
-                                    yield Static(id="details-view")
-                                with Horizontal(id="details-actions"):
-                                    yield Button("Claim Task (c)", id="btn-claim", variant="primary", classes="action-btn")
-                                    yield Button("Cycle Status (s)", id="btn-status", variant="default", classes="action-btn")
-                                    yield Button("Complete Task", id="btn-complete", variant="success", classes="action-btn")
-                            
-                            with TabPane("Task Comments"):
-                                with VerticalScroll(classes="scrollable-pane"):
-                                    yield Static(id="task-comments-list")
-                                with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold cyan]Add Task Comment:[/bold cyan]")
-                                    yield Input(placeholder="Type comment and press Enter...", id="new-task-comment-input")
-                            
-                            with TabPane("Task Decisions"):
-                                with VerticalScroll(classes="scrollable-pane"):
-                                    yield Static(id="task-decisions-list")
-                                with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold cyan]Record Task Decision[/bold cyan]")
-                                    yield Input(placeholder="Decision Title...", id="task-dec-title")
-                                    yield Input(placeholder="Context/Reasoning...", id="task-dec-context")
-                                    yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="task-dec-text")
-                            
-                            with TabPane("Task Activity"):
-                                yield RichLog(id="task-feed-log", highlight=True, markup=True)
+        with Vertical(id="app-container"):
+            # Top Navigation Bar
+            with Horizontal(id="top-nav"):
+                yield Label("⚡ H I V E", id="nav-logo")
+                with Horizontal(id="nav-buttons"):
+                    yield Button("📋 Task Board", id="nav-tasks", classes="nav-btn -active")
+                    yield Button("🏢 Project Hub", id="nav-project", classes="nav-btn")
+                yield Static(id="nav-stats")
+            
+            # Bottom Main Content area
+            with Vertical(id="main-content"):
+                with ContentSwitcher(initial="pane-tasks", id="content-switcher"):
+                    # Task Board pane
+                    with Horizontal(id="pane-tasks", classes="page-container"):
+                        # Left Column
+                        with Vertical(id="left-pane", classes="left-column"):
+                            yield Label("📋 Tasks", classes="section-title")
+                            yield DataTable(id="task-table")
+                            with Vertical(id="new-task-form", classes="form-container"):
+                                yield Label("[bold cyan]Quick Create Task[/bold cyan]")
+                                yield Input(placeholder="Task Title...", id="new-task-title")
+                                yield Input(placeholder="Task Description... (Press Enter to save)", id="new-task-desc")
+                        
+                        # Right Column
+                        with Vertical(id="right-pane", classes="right-column"):
+                            with TabbedContent(id="task-tabs"):
+                                with TabPane("Task Details"):
+                                    with VerticalScroll(classes="scrollable-pane"):
+                                        yield Static(id="details-view")
+                                    with Horizontal(id="details-actions"):
+                                        yield Button("Claim Task (c)", id="btn-claim", variant="primary", classes="action-btn")
+                                        yield Button("Cycle Status (s)", id="btn-status", variant="default", classes="action-btn")
+                                        yield Button("Complete Task", id="btn-complete", variant="success", classes="action-btn")
                                 
-            with TabPane("Project Hub", id="tab-project-hub"):
-                with Container(classes="pane-container"):
-                    # Left Column
-                    with Vertical(id="project-left-pane", classes="tui-column"):
-                        yield Label("🏢 Project Info", classes="section-title")
-                        with VerticalScroll(classes="scrollable-pane"):
-                            yield Static(id="project-info-view")
-                        with Vertical(id="project-update-form"):
-                            yield Label("[bold cyan]Update Project Info[/bold cyan]")
-                            yield Input(placeholder="Project Name...", id="project-name-input")
-                            yield Input(placeholder="Project Details...", id="project-details-input")
-                            yield Input(placeholder="Overall Idea... (Press Enter to update)", id="project-idea-input")
-                    
-                    # Right Column
-                    with Vertical(id="project-right-pane", classes="tui-column"):
-                        with TabbedContent(id="project-tabs"):
-                            with TabPane("Project Comments"):
-                                with VerticalScroll(classes="scrollable-pane"):
-                                    yield Static(id="project-comments-list")
-                                with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold cyan]Add Project Comment:[/bold cyan]")
-                                    yield Input(placeholder="Type comment and press Enter...", id="new-project-comment-input")
-                            
-                            with TabPane("Project Decisions"):
-                                with VerticalScroll(classes="scrollable-pane"):
-                                    yield Static(id="project-decisions-list")
-                                with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold cyan]Record Project Decision[/bold cyan]")
-                                    yield Input(placeholder="Decision Title...", id="project-dec-title")
-                                    yield Input(placeholder="Context/Reasoning...", id="project-dec-context")
-                                    yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="project-dec-text")
-                            
-                            with TabPane("Project Memories"):
-                                with VerticalScroll(classes="scrollable-pane"):
-                                    yield Static(id="project-memories-list")
-                                with Vertical(classes="input-box-pane"):
-                                    yield Label("[bold cyan]Add/Update Project Memory[/bold cyan]")
-                                    yield Input(placeholder="Memory Key...", id="project-mem-key")
-                                    yield Input(placeholder="Memory Value... (Press Enter to save)", id="project-mem-val")
+                                with TabPane("Task Comments"):
+                                    with VerticalScroll(classes="scrollable-pane"):
+                                        yield Static(id="task-comments-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("[bold cyan]Add Task Comment:[/bold cyan]")
+                                        yield Input(placeholder="Type comment and press Enter...", id="new-task-comment-input")
+                                
+                                with TabPane("Task Decisions"):
+                                    with VerticalScroll(classes="scrollable-pane"):
+                                        yield Static(id="task-decisions-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("[bold cyan]Record Task Decision[/bold cyan]")
+                                        yield Input(placeholder="Decision Title...", id="task-dec-title")
+                                        yield Input(placeholder="Context/Reasoning...", id="task-dec-context")
+                                        yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="task-dec-text")
+                                
+                                with TabPane("Task Activity"):
+                                    yield RichLog(id="task-feed-log", highlight=True, markup=True)
                                     
-                            with TabPane("Project Activity"):
-                                yield RichLog(id="project-feed-log", highlight=True, markup=True)
+                    # Project Hub pane
+                    with Horizontal(id="pane-project", classes="page-container"):
+                        # Left Column
+                        with Vertical(id="project-left-pane", classes="left-column"):
+                            yield Label("🏢 Project Info", classes="section-title")
+                            with VerticalScroll(classes="scrollable-pane"):
+                                yield Static(id="project-info-view")
+                            with Vertical(id="project-update-form", classes="form-container"):
+                                yield Label("[bold cyan]Update Project Info[/bold cyan]")
+                                yield Input(placeholder="Project Name...", id="project-name-input")
+                                yield Input(placeholder="Project Details...", id="project-details-input")
+                                yield Input(placeholder="Overall Idea... (Press Enter to update)", id="project-idea-input")
+                        
+                        # Right Column
+                        with Vertical(id="project-right-pane", classes="right-column"):
+                            with TabbedContent(id="project-tabs"):
+                                with TabPane("Project Comments"):
+                                    with VerticalScroll(classes="scrollable-pane"):
+                                        yield Static(id="project-comments-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("[bold cyan]Add Project Comment:[/bold cyan]")
+                                        yield Input(placeholder="Type comment and press Enter...", id="new-project-comment-input")
+                                
+                                with TabPane("Project Decisions"):
+                                    with VerticalScroll(classes="scrollable-pane"):
+                                        yield Static(id="project-decisions-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("[bold cyan]Record Project Decision[/bold cyan]")
+                                        yield Input(placeholder="Decision Title...", id="project-dec-title")
+                                        yield Input(placeholder="Context/Reasoning...", id="project-dec-context")
+                                        yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="project-dec-text")
+                                
+                                with TabPane("Project Memories"):
+                                    with VerticalScroll(classes="scrollable-pane"):
+                                        yield Static(id="project-memories-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("[bold cyan]Add/Update Project Memory[/bold cyan]")
+                                        yield Input(placeholder="Memory Key...", id="project-mem-key")
+                                        yield Input(placeholder="Memory Value... (Press Enter to save)", id="project-mem-val")
+                                        
+                                with TabPane("Project Activity"):
+                                    yield RichLog(id="project-feed-log", highlight=True, markup=True)
         yield Footer()
 
     def on_mount(self) -> None:
@@ -310,6 +408,7 @@ class HiveTUIApp(App):
         self.refresh_tasks()
         self.update_project_view()
         self.refresh_feed()
+        self.update_nav_stats()
 
     def refresh_tasks(self) -> None:
         table = self.query_one("#task-table", DataTable)
@@ -321,17 +420,17 @@ class HiveTUIApp(App):
         with get_session() as session:
             tasks = crud.list_tasks(session)
             for t in tasks:
-                status_color = {"todo": "gray", "in_progress": "blue", "review": "yellow", "done": "green"}.get(t.status.lower(), "white")
+                status_color = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(t.status.lower(), "white")
                 status_str = f"[{status_color}]{format_status(t.status)}[/{status_color}]"
                 
-                prio_color = {0: "bold red", 1: "red", 2: "yellow", 3: "blue", 4: "gray"}.get(t.priority, "white")
+                prio_color = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(t.priority, "white")
                 priority_str = f"[{prio_color}]{format_priority(t.priority)}[/{prio_color}]"
                 
                 assignee_str = f"[cyan]@{t.assignee}[/cyan]" if t.assignee else "[dim]-[/dim]"
                 id_str = f"[bold white]#{t.id}[/bold white]"
                 title_str = f"[strike dim]{t.title}[/strike dim]" if t.status.lower() == "done" else t.title
                 
-                progress_color = "green" if t.progress == 100 else "blue" if t.progress > 0 else "gray"
+                progress_color = "#34d399" if t.progress == 100 else "#60a5fa" if t.progress > 0 else "#a1a1aa"
                 progress_str = f"[{progress_color}]{t.progress}%[/{progress_color}]"
                 
                 table.add_row(
@@ -361,6 +460,22 @@ class HiveTUIApp(App):
         # Trigger details refresh
         self.update_details_view()
         self.update_project_view()
+        self.update_nav_stats()
+
+    def update_nav_stats(self) -> None:
+        stats_box = self.query_one("#nav-stats", Static)
+        with get_session() as session:
+            tasks = crud.list_tasks(session)
+            total_tasks = len(tasks)
+            done_count = sum(1 for t in tasks if t.status == "done")
+            in_progress_count = sum(1 for t in tasks if t.status == "in_progress")
+            
+            stats_text = Text.assemble(
+                ("Tasks: ", "bold #a1a1aa"), f"{total_tasks}  |  ",
+                ("Active: ", "bold #a1a1aa"), f"{in_progress_count}  |  ",
+                ("Completed: ", "bold #a1a1aa"), f"{done_count}  "
+            )
+            stats_box.update(stats_text)
 
     def refresh_feed(self) -> None:
         # 1. Update Project Feed Log (unfiltered)
@@ -388,16 +503,20 @@ class HiveTUIApp(App):
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         row_key = event.row_key.value
         if row_key:
-            self.selected_task_id = int(row_key)
-            self.update_details_view()
-            self.refresh_feed()
+            new_id = int(row_key)
+            if new_id != self.selected_task_id:
+                self.selected_task_id = new_id
+                self.update_details_view()
+                self.refresh_feed()
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         row_key = event.row_key.value
         if row_key:
-            self.selected_task_id = int(row_key)
-            self.update_details_view()
-            self.refresh_feed()
+            new_id = int(row_key)
+            if new_id != self.selected_task_id:
+                self.selected_task_id = new_id
+                self.update_details_view()
+                self.refresh_feed()
 
     def update_details_view(self) -> None:
         details_box = self.query_one("#details-view", Static)
@@ -419,26 +538,26 @@ class HiveTUIApp(App):
                     details_box.update(Panel("Selected task not found.", title="Error"))
                     return
                     
-                status_theme = {"todo": "gray", "in_progress": "blue", "review": "yellow", "done": "green"}.get(task.status, "white")
-                prio_theme = {0: "bold red", 1: "red", 2: "yellow", 3: "blue", 4: "gray"}.get(task.priority, "white")
+                status_theme = {"todo": "#a1a1aa", "in_progress": "#60a5fa", "review": "#fbbf24", "done": "#34d399"}.get(task.status, "white")
+                prio_theme = {0: "#fca5a5", 1: "#fca5a5", 2: "#fde047", 3: "#93c5fd", 4: "#a1a1aa"}.get(task.priority, "white")
                 
                 details_text = Text.assemble(
-                    ("Title: ", "bold cyan"), f"{task.title}\n",
-                    ("Description: ", "bold cyan"), f"{task.description or 'No description'}\n\n",
-                    ("Status: ", "bold cyan"), (format_status(task.status), status_theme), "  |  ",
-                    ("Priority: ", "bold cyan"), (format_priority(task.priority), prio_theme), "  |  ",
-                    ("Progress: ", "bold cyan"), f"{task.progress}%\n",
-                    ("Assignee: ", "bold cyan"), ("@" + task.assignee if task.assignee else "Unassigned", "green"), "\n",
-                    ("Created: ", "bold cyan"), f"{format_datetime(task.created_at)}\n",
-                    ("Updated: ", "bold cyan"), f"{format_datetime(task.updated_at)}"
+                    ("Task Title:  ", "bold #a1a1aa"), f"{task.title}\n",
+                    ("Description: ", "bold #a1a1aa"), f"{task.description or 'No description'}\n\n",
+                    ("Status:      ", "bold #a1a1aa"), (format_status(task.status), status_theme), "  |  ",
+                    ("Priority:    ", "bold #a1a1aa"), (format_priority(task.priority), prio_theme), "  |  ",
+                    ("Progress:    ", "bold #a1a1aa"), f"{task.progress}%\n",
+                    ("Assignee:    ", "bold #a1a1aa"), ("@" + task.assignee if task.assignee else "Unassigned", "#34d399"), "\n",
+                    ("Created:     ", "bold #a1a1aa"), f"{format_datetime(task.created_at)}\n",
+                    ("Updated:     ", "bold #a1a1aa"), f"{format_datetime(task.updated_at)}"
                 )
-                details_box.update(Panel(details_text, title=f"Task #{task.id}", border_style="cyan"))
+                details_box.update(Panel(details_text, title=f"Task #{task.id}", border_style="#3f3f46"))
                 
                 # Comments
                 comments = crud.get_comments(session, self.selected_task_id)
                 comment_content = []
                 for c in comments:
-                    comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[dim]──────────────────────────────────────────────────[/dim]")
+                    comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
                 if not comment_content:
                     comment_content.append("[italic dim]No comments yet. Type below and press Enter to add one.[/italic dim]")
                 comments_box.update("\n".join(comment_content))
@@ -447,13 +566,13 @@ class HiveTUIApp(App):
                 task_decisions = crud.get_decisions(session, self.selected_task_id)
                 decision_content = []
                 if task_decisions:
-                    decision_content.append("[bold underline green]Task Decisions:[/bold underline green]")
+                    decision_content.append("[bold underline #34d399]Task Decisions:[/bold underline #34d399]")
                     for d in task_decisions:
                         decision_content.append(
-                            f"[bold magenta]⚡ {d.title}[/bold magenta] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
-                            f"[italic cyan]Context:[/italic cyan] {d.context}\n"
-                            f"[bold green]Decision:[/bold green] {d.decision}\n"
-                            f"[dim]──────────────────────────────────────────────────[/dim]"
+                            f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
+                            f"[italic #a1a1aa]Context:[/italic #a1a1aa] {d.context}\n"
+                            f"[bold #34d399]Decision:[/bold #34d399] {d.decision}\n"
+                            f"[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]"
                         )
                 if not decision_content:
                     decision_content.append("[italic dim]No decisions recorded for this task yet.[/italic dim]")
@@ -485,24 +604,34 @@ class HiveTUIApp(App):
                 avg_progress = int(sum(t.progress for t in tasks) / total_tasks)
             assignees = {t.assignee for t in tasks if t.assignee}
             
+            # Build project overview details
             info_text = Text.assemble(
-                ("Project Name: ", "bold yellow"), f"{project.name}\n\n",
-                ("Details: ", "bold yellow"), f"{project.details or 'No details.'}\n\n",
-                ("Overall Idea: ", "bold yellow"), f"{project.overall_idea or 'No overall idea.'}\n\n",
-                ("Last Updated: ", "bold yellow"), f"{format_datetime(project.updated_at)}\n\n",
-                ("┌" + "─" * 40 + "┐\n", "bold magenta"),
-                ("│            TASK STATISTICS             │\n", "bold magenta"),
-                ("├" + "─" * 40 + "┤\n", "bold magenta"),
-                ("│  Total Tasks: ", "bold"), f"{total_tasks:<25}│\n",
-                ("│  Todo: ", "bold"), f"{todo_count:<32}│\n",
-                ("│  In Progress: ", "bold"), f"{in_progress_count:<25}│\n",
-                ("│  Review: ", "bold"), f"{review_count:<30}│\n",
-                ("│  Done: ", "bold"), f"{done_count:<32}│\n",
-                ("│  Average Progress: ", "bold"), f"{f'{avg_progress}%':<20}│\n",
-                ("│  Active Team Members: ", "bold"), f"{len(assignees):<17}│\n",
-                ("└" + "─" * 40 + "┘", "bold magenta")
+                ("Project Name: ", "bold #fde047"), f"{project.name}\n\n",
+                ("Details:      ", "bold #a1a1aa"), f"{project.details or 'No details.'}\n\n",
+                ("Overall Idea: ", "bold #a1a1aa"), f"{project.overall_idea or 'No overall idea.'}\n\n",
+                ("Last Updated: ", "bold #a1a1aa"), f"{format_datetime(project.updated_at)}\n\n"
             )
-            info_box.update(Panel(info_text, title="Project Hub Status", border_style="yellow"))
+            
+            # Create a beautiful grid for task stats
+            stats_table = Table.grid(padding=(0, 2))
+            stats_table.add_column(style="bold #a1a1aa") # Label
+            stats_table.add_column(style="bold white") # Value
+            
+            stats_table.add_row("Total Tasks:", str(total_tasks))
+            stats_table.add_row("Todo Tasks:", f"[#a1a1aa]{todo_count}[/#a1a1aa]")
+            stats_table.add_row("In Progress:", f"[#60a5fa]{in_progress_count}[/#60a5fa]")
+            stats_table.add_row("In Review:", f"[#fde047]{review_count}[/#fde047]")
+            stats_table.add_row("Completed:", f"[#34d399]{done_count}[/#34d399]")
+            
+            progress_bar = f"[#34d399]{'█' * (avg_progress // 10)}{'░' * (10 - avg_progress // 10)}[/#34d399] {avg_progress}%"
+            stats_table.add_row("Avg Progress:", progress_bar)
+            stats_table.add_row("Team Size:", f"{len(assignees)} active member(s)")
+            
+            group = Group(
+                info_text,
+                Panel(stats_table, title="[bold #a1a1aa]Task Statistics[/bold #a1a1aa]", border_style="#3f3f46")
+            )
+            info_box.update(Panel(group, title="Project Hub Status", border_style="#3f3f46"))
             
             # Populate form inputs with current values if they are empty
             name_input = self.query_one("#project-name-input", Input)
@@ -519,7 +648,7 @@ class HiveTUIApp(App):
             comments = crud.get_comments(session, task_id=None)
             comment_content = []
             for c in comments:
-                comment_content.append(f"[bold cyan]@{c.author}[/bold cyan] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[dim]──────────────────────────────────────────────────[/dim]")
+                comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [dim]({format_datetime(c.created_at)})[/dim]\n{c.content}\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
             if not comment_content:
                 comment_content.append("[italic dim]No project comments yet. Type below to add one.[/italic dim]")
             comments_box.update("\n".join(comment_content))
@@ -529,10 +658,10 @@ class HiveTUIApp(App):
             decision_content = []
             for d in decisions:
                 decision_content.append(
-                    f"[bold magenta]⚡ {d.title}[/bold magenta] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
-                    f"[italic cyan]Context:[/italic cyan] {d.context}\n"
-                    f"[bold green]Decision:[/bold green] {d.decision}\n"
-                    f"[dim]──────────────────────────────────────────────────[/dim]"
+                    f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [dim]by @{d.author} ({format_datetime(d.created_at)})[/dim]\n"
+                    f"[italic #a1a1aa]Context:[/italic #a1a1aa] {d.context}\n"
+                    f"[bold #34d399]Decision:[/bold #34d399] {d.decision}\n"
+                    f"[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]"
                 )
             if not decision_content:
                 decision_content.append("[italic dim]No project decisions recorded yet. Record one below.[/italic dim]")
@@ -542,7 +671,7 @@ class HiveTUIApp(App):
             memories = crud.list_memories(session)
             memory_lines = []
             for m in memories:
-                memory_lines.append(f"[bold yellow]🧠 {m.key}[/bold yellow] = {m.value} [dim]({format_datetime(m.updated_at)})[/dim]\n[dim]──────────────────────────────────────────────────[/dim]")
+                memory_lines.append(f"[bold #fbbf24]🧠 {m.key}[/bold #fbbf24] = {m.value} [dim]({format_datetime(m.updated_at)})[/dim]\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
             if not memory_lines:
                 memory_lines.append("[italic dim]No project memories stored yet. Add one below.[/italic dim]")
             memories_box.update("\n".join(memory_lines))
@@ -589,6 +718,18 @@ class HiveTUIApp(App):
 
     def action_focus_new_task(self) -> None:
         self.query_one("#new-task-title", Input).focus()
+
+    def action_switch_to_tasks(self) -> None:
+        self.query_one("#content-switcher", ContentSwitcher).current = "pane-tasks"
+        self.query_one("#nav-tasks", Button).add_class("-active")
+        self.query_one("#nav-project", Button).remove_class("-active")
+        self.notify("Switched to Task Board")
+
+    def action_switch_to_project(self) -> None:
+        self.query_one("#content-switcher", ContentSwitcher).current = "pane-project"
+        self.query_one("#nav-project", Button).add_class("-active")
+        self.query_one("#nav-tasks", Button).remove_class("-active")
+        self.notify("Switched to Project Hub")
 
     # --- Widget Event Handlers ---
 
@@ -720,7 +861,11 @@ class HiveTUIApp(App):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id
         
-        if btn_id == "btn-claim":
+        if btn_id == "nav-tasks":
+            self.action_switch_to_tasks()
+        elif btn_id == "nav-project":
+            self.action_switch_to_project()
+        elif btn_id == "btn-claim":
             self.action_claim_selected()
         elif btn_id == "btn-status":
             self.action_cycle_status()
