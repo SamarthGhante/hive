@@ -31,20 +31,19 @@ class HiveTUIApp(App):
         ("tab", "switch_focus", "Focus Tab"),
         ("c", "claim_selected", "Claim"),
         ("s", "cycle_status", "Cycle Status"),
-        ("n", "focus_command", "Console Input"),
         ("t", "switch_to_tasks", "Tasks"),
         ("p", "switch_to_project", "Project"),
     ]
 
     CSS = """
     /* Premium Minimalist Stylesheet */
-    $background: #09090b;   /* Almost black background */
-    $surface: #18181b;      /* Dark gray card surface */
-    $panel: #27272a;        /* Elevated elements / inputs */
-    $primary: #f4f4f5;      /* Primary text - white */
-    $secondary: #a1a1aa;    /* Secondary muted text */
-    $accent: #60a5fa;       /* Dynamic blue accent */
-    $border: #3f3f46;       /* Clean border tone */
+    $background: #000000;   /* Black background */
+    $surface: #121212;      /* Dark gray card surface */
+    $panel: #1e1e1e;        /* Elevated elements / inputs */
+    $primary: #ffffff;      /* Primary text - white */
+    $secondary: #8e8e93;    /* Secondary muted text */
+    $accent: #60a5fa;       /* Blue accent */
+    $border: #2c2c2e;       /* Clean border tone */
     
     $success: #34d399;      /* Emerald */
     $warning: #fbbf24;      /* Amber */
@@ -144,7 +143,7 @@ class HiveTUIApp(App):
     }
 
     DataTable > .datatable--cursor {
-        background: $accent 25%;
+        background: #fbbf24 25%; /* Yellow highlight color */
         color: $primary;
         text-style: bold;
     }
@@ -153,30 +152,39 @@ class HiveTUIApp(App):
         background: $panel;
     }
 
-    /* Quick Console Command Bar */
-    .console-container {
+    /* Form and Input styling */
+    .form-container {
         height: auto;
         border-top: solid $border;
         margin-top: 1;
+        layout: vertical;
         background: $surface;
         padding: 1 0 0 0;
     }
 
-    .console-label {
+    .form-label {
         color: $secondary;
-        text-style: bold;
+        text-style: italic;
         margin-bottom: 0;
     }
 
-    #console-input {
+    Input {
         background: $panel;
         border: tall $border;
         color: $primary;
-        margin: 0;
+        margin: 0 0 1 0;
     }
 
-    #console-input:focus {
+    Input:focus {
         border: tall $accent;
+    }
+
+    /* Input box pane inside tab scrolls */
+    .input-box-pane {
+        height: auto;
+        border-top: solid $border;
+        background: $surface;
+        padding: 1 0 0 0;
     }
 
     /* Tabbed content details */
@@ -216,6 +224,17 @@ class HiveTUIApp(App):
 
     .scrollable-pane > Static {
         height: auto;
+    }
+
+    /* Styles for centered placeholder texts */
+    .placeholder-style {
+        background: #1c1c1e;
+        color: #ffffff;
+        content-align: center middle;
+        height: 100%;
+        text-align: center;
+        text-style: italic;
+        padding: 2;
     }
 
     #details-view, #project-info-view {
@@ -277,9 +296,10 @@ class HiveTUIApp(App):
                         with Vertical(id="left-pane", classes="left-column"):
                             yield Label("Tasks Overview", classes="section-title")
                             yield DataTable(id="task-table")
-                            with Vertical(id="task-console-container", classes="console-container"):
-                                yield Label("Workspace Console (/help for commands, enter comment directly)", classes="console-label")
-                                yield Input(placeholder="Type command or comment, then press Enter...", id="new-task-title")
+                            with Vertical(id="new-task-form", classes="form-container"):
+                                yield Label("Quick Create Task", classes="form-label")
+                                yield Input(placeholder="Task title (Enter to description)...", id="new-task-title")
+                                yield Input(placeholder="Description (Enter to create)...", id="new-task-desc")
                         
                         # Right Column
                         with Vertical(id="right-pane", classes="right-column"):
@@ -295,10 +315,18 @@ class HiveTUIApp(App):
                                 with TabPane("Comments", id="pane-task-comments"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="task-comments-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("Add Comment", classes="form-label")
+                                        yield Input(placeholder="Type comment, press Enter...", id="new-task-comment-input")
                                 
                                 with TabPane("Decisions", id="pane-task-decisions"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="task-decisions-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("Record Decision", classes="form-label")
+                                        yield Input(placeholder="Title (Enter to context)...", id="task-dec-title")
+                                        yield Input(placeholder="Context (Enter to decision)...", id="task-dec-context")
+                                        yield Input(placeholder="Decision (Enter to record)...", id="task-dec-text")
                                 
                                 with TabPane("Activity Feed", id="pane-task-activity"):
                                     yield RichLog(id="task-feed-log", highlight=True, markup=True)
@@ -310,9 +338,11 @@ class HiveTUIApp(App):
                             yield Label("Project Profile", classes="section-title")
                             with VerticalScroll(classes="scrollable-pane"):
                                 yield Static(id="project-info-view")
-                            with Vertical(id="project-console-container", classes="console-container"):
-                                yield Label("Project Console (/help for commands, enter comment directly)", classes="console-label")
-                                yield Input(placeholder="Type command or project comment...", id="project-name-input")
+                            with Vertical(id="project-update-form", classes="form-container"):
+                                yield Label("Update Project Info", classes="form-label")
+                                yield Input(placeholder="Project Name (Enter to details)...", id="project-name-input")
+                                yield Input(placeholder="Details (Enter to overall idea)...", id="project-details-input")
+                                yield Input(placeholder="Overall Idea (Enter to save)...", id="project-idea-input")
                         
                         # Right Column
                         with Vertical(id="project-right-pane", classes="right-column"):
@@ -320,14 +350,26 @@ class HiveTUIApp(App):
                                 with TabPane("Comments", id="pane-project-comments"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="project-comments-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("Add Project Comment", classes="form-label")
+                                        yield Input(placeholder="Type comment, press Enter...", id="new-project-comment-input")
                                 
                                 with TabPane("Decisions", id="pane-project-decisions"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="project-decisions-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("Record Project Decision", classes="form-label")
+                                        yield Input(placeholder="Title (Enter to context)...", id="project-dec-title")
+                                        yield Input(placeholder="Context (Enter to decision)...", id="project-dec-context")
+                                        yield Input(placeholder="Decision (Enter to record)...", id="project-dec-text")
                                 
                                 with TabPane("Memories", id="pane-project-memories"):
                                     with VerticalScroll(classes="scrollable-pane"):
                                         yield Static(id="project-memories-list")
+                                    with Vertical(classes="input-box-pane"):
+                                        yield Label("Record Project Memory", classes="form-label")
+                                        yield Input(placeholder="Key (Enter to value)...", id="project-mem-key")
+                                        yield Input(placeholder="Value (Enter to save)...", id="project-mem-val")
                                         
                                 with TabPane("Activity Feed", id="pane-project-activity"):
                                     yield RichLog(id="project-feed-log", highlight=True, markup=True)
@@ -526,22 +568,44 @@ class HiveTUIApp(App):
             Text("\n"),
             info_table,
             Text("\n"),
-            Rule("Description", style="#3f3f46"),
+            Rule("Description", style="#2c2c2e"),
             Text(f"\n{details_content}\n", style="#e4e4e7"),
-            Rule("Overall Idea", style="#3f3f46"),
+            Rule("Overall Idea", style="#2c2c2e"),
             Text(f"\n{idea_content}\n", style="#e4e4e7"),
-            Rule("Metrics", style="#3f3f46"),
+            Rule("Metrics", style="#2c2c2e"),
             Text("\n"),
-            Panel(stats_table, title="Task Statistics", border_style="#3f3f46")
+            Panel(stats_table, title="Task Statistics", border_style="#2c2c2e")
         )
-        info_box.update(Panel(group, title=Text("Project Profile", style="bold #a1a1aa"), border_style="#3f3f46"))
+        info_box.update(Panel(group, title=Text("Project Profile", style="bold #a1a1aa"), border_style="#2c2c2e"))
+
+        # Populate forms metadata if empty
+        name_input = self.query_one("#project-name-input", Input)
+        details_input = self.query_one("#project-details-input", Input)
+        idea_input = self.query_one("#project-idea-input", Input)
+        if not name_input.value:
+            name_input.value = project.name
+        if not details_input.value:
+            details_input.value = project.details or ""
+        if not idea_input.value:
+            idea_input.value = project.overall_idea or ""
 
         comment_content = []
         for c in comments:
             comment_content.append(f"[bold #60a5fa]@{c.author}[/] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
         if not comment_content:
-            comment_content.append("[italic #71717a]No project comments yet. Type comment directly in the Project Console.[/italic #71717a]")
-        comments_box.update("\n".join(comment_content))
+            comment_content.append("[italic #71717a]No project comments yet. Type in the form below to add one.[/italic #71717a]")
+        
+        # Centerized placeholder logic if no comments
+        if not comments:
+            comments_box.update(Panel(
+                Text("\n\nNo project comments yet.\n\nType in the form below to add one.", style="white"),
+                border_style="none",
+                box=None
+            ))
+            comments_box.set_class(True, "placeholder-style")
+        else:
+            comments_box.update("\n".join(comment_content))
+            comments_box.set_class(False, "placeholder-style")
 
         decision_content = []
         for d in decisions:
@@ -551,16 +615,32 @@ class HiveTUIApp(App):
                 f"[bold #34d399]Decision:[/bold #34d399] [#e4e4e7]{d.decision}[/#e4e4e7]\n"
                 f"[#323232]──────────────────────────────────────────────────[/#323232]"
             )
-        if not decision_content:
-            decision_content.append("[italic #71717a]No project decisions recorded yet. Type `/decision <title> | <ctx> | <dec>` in the console.[/italic #71717a]")
-        decisions_box.update("\n".join(decision_content))
+        
+        if not decisions:
+            decisions_box.update(Panel(
+                Text("\n\nNo project decisions recorded yet.\n\nRecord one using the form below.", style="white"),
+                border_style="none",
+                box=None
+            ))
+            decisions_box.set_class(True, "placeholder-style")
+        else:
+            decisions_box.update("\n".join(decision_content))
+            decisions_box.set_class(False, "placeholder-style")
 
         memory_lines = []
         for m in memories:
             memory_lines.append(f"[bold #fbbf24]{m.key}[/bold #fbbf24] = [#e4e4e7]{m.value}[/#e4e4e7] [#71717a]({format_datetime(m.updated_at)})[/#71717a]\n[#323232]──────────────────────────────────────────────────[/#323232]")
-        if not memory_lines:
-            memory_lines.append("[italic #71717a]No project memories stored yet. Type `/memory <key> = <val>` in the console.[/italic #71717a]")
-        memories_box.update("\n".join(memory_lines))
+        
+        if not memories:
+            memories_box.update(Panel(
+                Text("\n\nNo project memories stored yet.\n\nAdd one using the form below.", style="white"),
+                border_style="none",
+                box=None
+            ))
+            memories_box.set_class(True, "placeholder-style")
+        else:
+            memories_box.update("\n".join(memory_lines))
+            memories_box.set_class(False, "placeholder-style")
 
         project_log.clear()
         for e in reversed(events):
@@ -599,15 +679,25 @@ class HiveTUIApp(App):
             ("Created:     ", "bold #a1a1aa"), (f"{format_datetime(task.created_at)}\n", "#e4e4e7"),
             ("Updated:     ", "bold #a1a1aa"), (f"{format_datetime(task.updated_at)}", "#e4e4e7")
         )
-        details_box.update(Panel(details_text, title=Text(f"Task #{task.id}", style="bold #a1a1aa"), border_style="#3f3f46"))
+        details_box.update(Panel(details_text, title=Text(f"Task #{task.id}", style="bold #a1a1aa"), border_style="#2c2c2e"))
 
+        # Comments
         comment_content = []
         for c in comments:
             comment_content.append(f"[bold #60a5fa]@{c.author}[/] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
-        if not comment_content:
-            comment_content.append("[italic #71717a]No comments yet. Type comments directly in the Workspace Console below.[/italic #71717a]")
-        comments_box.update("\n".join(comment_content))
+        
+        if not comments:
+            comments_box.update(Panel(
+                Text("\n\nNo comments yet.\n\nType in the form below to add one.", style="white"),
+                border_style="none",
+                box=None
+            ))
+            comments_box.set_class(True, "placeholder-style")
+        else:
+            comments_box.update("\n".join(comment_content))
+            comments_box.set_class(False, "placeholder-style")
 
+        # Decisions
         decision_content = []
         if decisions:
             decision_content.append("[bold underline #34d399]Task Decisions:[/bold underline #34d399]")
@@ -618,10 +708,19 @@ class HiveTUIApp(App):
                     f"[bold #34d399]Decision:[/bold #34d399] [#e4e4e7]{d.decision}[/#e4e4e7]\n"
                     f"[#323232]──────────────────────────────────────────────────[/#323232]"
                 )
-        if not decision_content:
-            decision_content.append("[italic #71717a]No decisions recorded. Type `/decision <title> | <ctx> | <dec>` in the console.[/italic #71717a]")
-        decisions_box.update("\n".join(decision_content))
+        
+        if not decisions:
+            decisions_box.update(Panel(
+                Text("\n\nNo decisions recorded for this task yet.\n\nRecord one using the form below.", style="white"),
+                border_style="none",
+                box=None
+            ))
+            decisions_box.set_class(True, "placeholder-style")
+        else:
+            decisions_box.update("\n".join(decision_content))
+            decisions_box.set_class(False, "placeholder-style")
 
+        # Feed
         task_log.clear()
         for e in reversed(events):
             time_str = format_datetime(e.created_at)
@@ -637,10 +736,27 @@ class HiveTUIApp(App):
         decisions_box = self.query_one("#task-decisions-list", Static)
         task_log = self.query_one("#task-feed-log", RichLog)
 
-        panel_text = Text("No tasks found. Use `/create <title> | <desc>` in the console input below.", style="#e4e4e7")
-        details_box.update(Panel(panel_text, title=Text("Details", style="bold #a1a1aa"), border_style="#3f3f46"))
-        comments_box.update("[italic #71717a]Create a task to view comments.[/italic #71717a]")
-        decisions_box.update("[italic #71717a]No task selected.[/italic #71717a]")
+        details_box.update(Panel(
+            Text("\n\nNo tasks found.\n\nUse the Quick Create form on the left to create a task.", style="white"),
+            border_style="none",
+            box=None
+        ))
+        details_box.set_class(True, "placeholder-style")
+
+        comments_box.update(Panel(
+            Text("\n\nNo task selected.", style="white"),
+            border_style="none",
+            box=None
+        ))
+        comments_box.set_class(True, "placeholder-style")
+
+        decisions_box.update(Panel(
+            Text("\n\nNo task selected.", style="white"),
+            border_style="none",
+            box=None
+        ))
+        decisions_box.set_class(True, "placeholder-style")
+
         task_log.clear()
         task_log.write("[italic #71717a]No task selected.[/italic #71717a]")
 
@@ -724,7 +840,7 @@ class HiveTUIApp(App):
         self.query_one("#nav-tabs", Tabs).active = "tab-project"
 
     def action_switch_focus(self) -> None:
-        # Toggle focus between main panels & console
+        # Toggle focus between main panels & inputs
         focused = self.focused
         if isinstance(focused, DataTable):
             self.action_focus_command()
@@ -758,182 +874,136 @@ class HiveTUIApp(App):
         self.notify(f"Completed task #{task_id}")
         await self.async_refresh_all()
 
-    # --- Integrated Console Command Handler ---
+    # --- Interactive Form Event Handlers ---
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         input_id = event.input.id
         val = event.value.strip()
-        if not val:
-            return
-
-        actor = get_current_actor()
-        event.input.value = ""
-
-        # Help menu
-        if val == "/help":
-            self._show_help_info()
-            return
-        elif val == "/quit":
-            self.exit()
-            return
-        elif val == "/refresh":
-            await self.async_refresh_all()
-            self.notify("Database view refreshed.")
-            return
-
-        # Commands processing
-        if val.startswith("/"):
-            parts = val[1:].split(" ", 1)
-            cmd = parts[0].lower()
-            args = parts[1].strip() if len(parts) > 1 else ""
-
-            if cmd == "create":
-                if not args:
-                    self.notify("Usage: /create <title> [| <description>]", severity="error")
-                    return
-                title = args
-                desc = None
-                if "|" in args:
-                    title, desc = args.split("|", 1)
-                    title = title.strip()
-                    desc = desc.strip()
-                await asyncio.to_thread(self._db_create_task, title, desc)
-                self.notify(f"Created task: {title}")
-                await self.async_refresh_all()
-                
-            elif cmd == "claim":
-                target_id = self.selected_task_id
-                if args:
-                    try:
-                        target_id = int(args)
-                    except ValueError:
-                        self.notify("Task ID must be an integer.", severity="error")
-                        return
-                if not target_id:
-                    self.notify("No task selected.", severity="warning")
-                    return
-                await asyncio.to_thread(self._db_claim_task, target_id, actor)
-                self.notify(f"Claimed task #{target_id}")
-                await self.async_refresh_all()
-
-            elif cmd == "complete":
-                target_id = self.selected_task_id
-                if args:
-                    try:
-                        target_id = int(args)
-                    except ValueError:
-                        self.notify("Task ID must be an integer.", severity="error")
-                        return
-                if not target_id:
-                    self.notify("No task selected.", severity="warning")
-                    return
-                await asyncio.to_thread(self._db_complete_task, target_id)
-                self.notify(f"Completed task #{target_id}")
-                await self.async_refresh_all()
-
-            elif cmd == "status":
-                if not args or args.lower() not in ["todo", "in_progress", "review", "done"]:
-                    self.notify("Usage: /status <todo|in_progress|review|done>", severity="error")
-                    return
-                if not self.selected_task_id:
-                    self.notify("No task selected to update status.", severity="warning")
-                    return
-                progress = 0
-                if args.lower() == "done":
-                    progress = 100
-                elif args.lower() == "in_progress":
-                    progress = 25
-                elif args.lower() == "review":
-                    progress = 75
-                await asyncio.to_thread(self._db_update_task, self.selected_task_id, status=args.lower(), progress=progress)
-                self.notify(f"Updated task #{self.selected_task_id} status to {args}")
-                await self.async_refresh_all()
-
-            elif cmd == "decision":
-                if not args or "|" not in args:
-                    self.notify("Usage: /decision <title> | <context> | <decision>", severity="error")
-                    return
-                parts = args.split("|")
-                if len(parts) < 2:
-                    self.notify("Usage: /decision <title> | <context> | <decision>", severity="error")
-                    return
-                dec_title = parts[0].strip()
-                dec_context = parts[1].strip()
-                dec_text = parts[2].strip() if len(parts) > 2 else ""
-                
-                current_tab = self.query_one("#nav-tabs", Tabs).active
-                task_id = self.selected_task_id if current_tab == "tab-tasks" else None
-                
-                await asyncio.to_thread(self._db_add_decision, task_id, dec_title, dec_context, dec_text, actor)
-                self.notify("Recorded decision successfully.")
-                await self.async_refresh_all()
-                
-            elif cmd == "memory":
-                if not args or "=" not in args:
-                    self.notify("Usage: /memory <key> = <value>", severity="error")
-                    return
-                m_key, m_val = args.split("=", 1)
-                m_key = m_key.strip()
-                m_val = m_val.strip()
-                await asyncio.to_thread(self._db_add_memory, m_key, m_val)
-                self.notify(f"Memory '{m_key}' saved.")
-                await self.async_refresh_all()
-                
-            elif cmd == "update-project":
-                if not args:
-                    self.notify("Usage: /update-project <name> [| <details> [| <idea>]]", severity="error")
-                    return
-                parts = args.split("|")
-                name = parts[0].strip() or None
-                details = parts[1].strip() if len(parts) > 1 else None
-                idea = parts[2].strip() if len(parts) > 2 else None
-                await asyncio.to_thread(self._db_update_project, name, details, idea)
-                self.notify("Project metadata updated.")
-                await self.async_refresh_all()
-            else:
-                self.notify(f"Unknown command: /{cmd}. Type /help for assistance.", severity="error")
-        else:
-            # Treats plain text entry as a quick comment based on active tab context
-            current_tab = self.query_one("#nav-tabs", Tabs).active
-            if current_tab == "tab-tasks":
-                if not self.selected_task_id:
-                    self.notify("No task selected to add comment.", severity="warning")
-                    return
-                await asyncio.to_thread(self._db_add_comment, self.selected_task_id, actor, val)
-                self.notify("Comment added to task.")
-            else:
-                await asyncio.to_thread(self._db_add_comment, None, actor, val)
-                self.notify("Comment added to project.")
-            await self.async_refresh_all()
-
-    def _show_help_info(self) -> None:
-        current_tab = self.query_one("#nav-tabs", Tabs).active
-        feed_log_id = "#task-feed-log" if current_tab == "tab-tasks" else "#project-feed-log"
-        try:
-            feed_log = self.query_one(feed_log_id, RichLog)
-            feed_log.write("\n[bold #fab283]═══ Hive Console Command Help ═══[/bold #fab283]")
-            if current_tab == "tab-tasks":
-                feed_log.write("  [bold #5c9cf5]/create <title> [| <desc>][/bold #5c9cf5] - Create a new task")
-                feed_log.write("  [bold #5c9cf5]/claim [id][/bold #5c9cf5]            - Claim task (defaults to selected)")
-                feed_log.write("  [bold #5c9cf5]/complete [id][/bold #5c9cf5]         - Complete task (defaults to selected)")
-                feed_log.write("  [bold #5c9cf5]/status <todo|in_progress|review|done>[/bold #5c9cf5] - Change status of selected task")
-                feed_log.write("  [bold #5c9cf5]/decision <title> | <ctx> | <dec>[/bold #5c9cf5] - Record task decision")
-                feed_log.write("  [bold #5c9cf5]<any other text>[/bold #5c9cf5]         - Add comment to selected task")
-            else:
-                feed_log.write("  [bold #5c9cf5]/update-project <name> [| <desc> [| <idea>]][/bold #5c9cf5] - Update project details")
-                feed_log.write("  [bold #5c9cf5]/memory <key> = <val>[/bold #5c9cf5]   - Record project memory")
-                feed_log.write("  [bold #5c9cf5]/decision <title> | <ctx> | <dec>[/bold #5c9cf5] - Record project decision")
-                feed_log.write("  [bold #5c9cf5]<any other text>[/bold #5c9cf5]         - Add comment to project")
-            feed_log.write("  [bold #5c9cf5]/refresh[/bold #5c9cf5]              - Refresh database views")
-            feed_log.write("  [bold #5c9cf5]/quit[/bold #5c9cf5]                 - Exit the TUI")
-            feed_log.write("[bold #fab283]═══════════════════════════════[/bold #fab283]\n")
+        
+        # 1. Quick Task Create Form
+        if input_id == "new-task-title":
+            if val:
+                self.query_one("#new-task-desc", Input).focus()
+        elif input_id == "new-task-desc":
+            title = self.query_one("#new-task-title", Input).value.strip()
+            if not title:
+                self.notify("Task title is required.", severity="error")
+                return
+            self.query_one("#new-task-title", Input).value = ""
+            event.input.value = ""
+            self.query_one("#new-task-title", Input).focus()
+            self.run_worker(self.async_create_task(title, val), group="db_sync")
             
-            if current_tab == "tab-tasks":
-                self.query_one("#task-tabs").active = "pane-task-activity"
-            else:
-                self.query_one("#project-tabs").active = "pane-project-activity"
-        except Exception as e:
-            self.notify("Help written to console feed.")
+        # 2. Add Task Comment Form
+        elif input_id == "new-task-comment-input":
+            if not val:
+                return
+            if not self.selected_task_id:
+                self.notify("No task selected.", severity="warning")
+                return
+            event.input.value = ""
+            self.run_worker(self.async_add_comment(self.selected_task_id, val), group="db_sync")
+            
+        # 3. Add Task Decision Form
+        elif input_id == "task-dec-title":
+            if val:
+                self.query_one("#task-dec-context", Input).focus()
+        elif input_id == "task-dec-context":
+            if val:
+                self.query_one("#task-dec-text", Input).focus()
+        elif input_id == "task-dec-text":
+            title = self.query_one("#task-dec-title", Input).value.strip()
+            context = self.query_one("#task-dec-context", Input).value.strip()
+            if not title or not val:
+                self.notify("Decision title and details are required.", severity="error")
+                return
+            self.query_one("#task-dec-title", Input).value = ""
+            self.query_one("#task-dec-context", Input).value = ""
+            event.input.value = ""
+            self.query_one("#task-dec-title", Input).focus()
+            self.run_worker(self.async_add_decision(self.selected_task_id, title, context, val), group="db_sync")
+            
+        # 4. Project Update Metadata Form
+        elif input_id == "project-name-input":
+            if val:
+                self.query_one("#project-details-input", Input).focus()
+        elif input_id == "project-details-input":
+            if val:
+                self.query_one("#project-idea-input", Input).focus()
+        elif input_id == "project-idea-input":
+            name = self.query_one("#project-name-input", Input).value.strip()
+            details = self.query_one("#project-details-input", Input).value.strip()
+            self.run_worker(self.async_update_project(name, details, val), group="db_sync")
+            self.query_one("#project-name-input", Input).focus()
+            
+        # 5. Add Project Comment Form
+        elif input_id == "new-project-comment-input":
+            if not val:
+                return
+            event.input.value = ""
+            self.run_worker(self.async_add_comment(None, val), group="db_sync")
+            
+        # 6. Add Project Decision Form
+        elif input_id == "project-dec-title":
+            if val:
+                self.query_one("#project-dec-context", Input).focus()
+        elif input_id == "project-dec-context":
+            if val:
+                self.query_one("#project-dec-text", Input).focus()
+        elif input_id == "project-dec-text":
+            title = self.query_one("#project-dec-title", Input).value.strip()
+            context = self.query_one("#project-dec-context", Input).value.strip()
+            if not title or not val:
+                self.notify("Decision title and details are required.", severity="error")
+                return
+            self.query_one("#project-dec-title", Input).value = ""
+            self.query_one("#project-dec-context", Input).value = ""
+            event.input.value = ""
+            self.query_one("#project-dec-title", Input).focus()
+            self.run_worker(self.async_add_decision(None, title, context, val), group="db_sync")
+            
+        # 7. Add Project Memory Form
+        elif input_id == "project-mem-key":
+            if val:
+                self.query_one("#project-mem-val", Input).focus()
+        elif input_id == "project-mem-val":
+            key = self.query_one("#project-mem-key", Input).value.strip()
+            if not key or not val:
+                self.notify("Memory key and value are required.", severity="error")
+                return
+            self.query_one("#project-mem-key", Input).value = ""
+            event.input.value = ""
+            self.query_one("#project-mem-key", Input).focus()
+            self.run_worker(self.async_add_memory(key, val), group="db_sync")
+
+    # --- Async operations connected to database helper threads ---
+
+    async def async_create_task(self, title: str, description: Optional[str]) -> None:
+        await asyncio.to_thread(self._db_create_task, title, description)
+        self.notify(f"Created task: {title}")
+        await self.async_refresh_all()
+
+    async def async_add_comment(self, task_id: Optional[int], content: str) -> None:
+        actor = get_current_actor()
+        await asyncio.to_thread(self._db_add_comment, task_id, actor, content)
+        self.notify("Added comment successfully.")
+        await self.async_refresh_all()
+
+    async def async_add_decision(self, task_id: Optional[int], title: str, context: str, decision: str) -> None:
+        actor = get_current_actor()
+        await asyncio.to_thread(self._db_add_decision, task_id, title, context, decision, actor)
+        self.notify("Decision recorded successfully.")
+        await self.async_refresh_all()
+
+    async def async_update_project(self, name: str, details: str, overall_idea: str) -> None:
+        await asyncio.to_thread(self._db_update_project, name, details, overall_idea)
+        self.notify("Project info updated successfully.")
+        await self.async_refresh_all()
+
+    async def async_add_memory(self, key: str, value: str) -> None:
+        await asyncio.to_thread(self._db_add_memory, key, value)
+        self.notify(f"Memory '{key}' saved.")
+        await self.async_refresh_all()
 
 if __name__ == "__main__":
     app = HiveTUIApp()

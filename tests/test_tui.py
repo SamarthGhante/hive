@@ -30,10 +30,16 @@ async def test_tui_mount():
         assert app.query_one("#details-view") is not None
         assert app.query_one("#project-name-input") is not None
         
-        # Test input console command submission to create a task
+        # Test input form submission to create a task
         title_input = app.query_one("#new-task-title")
+        desc_input = app.query_one("#new-task-desc")
+        
         title_input.focus()
-        title_input.value = "/create Test Task from TUI | Test Task Description"
+        title_input.value = "Test Task from TUI"
+        await pilot.press("enter")
+        
+        desc_input.focus()
+        desc_input.value = "Test Task Description"
         await pilot.press("enter")
         
         # Pause to let the background database worker complete and update table rows
