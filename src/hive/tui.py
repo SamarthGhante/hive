@@ -90,6 +90,11 @@ class HiveTUIApp(App):
         text-style: italic;
     }
 
+    #app-container {
+        height: 1fr;
+        width: 100%;
+    }
+
     #main-content {
         width: 100%;
         height: 1fr;
