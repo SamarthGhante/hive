@@ -45,7 +45,7 @@ class HiveTUIApp(App):
     
     Tab {
         color: #64748b;
-        font-weight: bold;
+        text-style: bold;
     }
     
     Tab:hover {
@@ -56,7 +56,7 @@ class HiveTUIApp(App):
     Tab.--active {
         color: #38bdf8;
         background: #0f172a;
-        border-bottom: solid #38bdf8 2;
+        border-bottom: solid #38bdf8;
     }
     
     .pane-container {
@@ -73,7 +73,6 @@ class HiveTUIApp(App):
         padding: 1;
         margin: 1;
         background: #0b0f19;
-        border-radius: 4;
     }
     
     .section-title {
@@ -107,7 +106,6 @@ class HiveTUIApp(App):
         margin-top: 1;
         layout: vertical;
         background: #0f172a;
-        border-radius: 4;
         padding: 1;
     }
     
@@ -132,7 +130,6 @@ class HiveTUIApp(App):
         padding: 1;
         background: #020617;
         margin-bottom: 1;
-        border-radius: 4;
     }
     
     .scrollable-pane > Static {
@@ -164,14 +161,12 @@ class HiveTUIApp(App):
         padding-top: 1;
         background: #0f172a;
         padding: 1;
-        border-radius: 4;
     }
     
     #task-feed-log, #project-feed-log {
         height: 1fr;
         background: #020617;
         border: solid #1e293b;
-        border-radius: 4;
         padding: 1;
     }
     
