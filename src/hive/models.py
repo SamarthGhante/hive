@@ -19,9 +19,17 @@ class Dependency(SQLModel, table=True):
     depends_on_id: int = Field(foreign_key="task.id", index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class Project(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(default="My Hive Project")
+    details: Optional[str] = Field(default=None)
+    overall_idea: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class Comment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    task_id: int = Field(foreign_key="task.id", index=True)
+    task_id: Optional[int] = Field(default=None, foreign_key="task.id", nullable=True, index=True)
     author: str
     content: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

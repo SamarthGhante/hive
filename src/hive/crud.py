@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 from typing import List, Optional
 from sqlmodel import Session, select, or_
-from hive.models import Task, Dependency, Comment, Decision, Memory, Event
+from hive.models import Task, Dependency, Comment, Decision, Memory, Event, Project
 from hive.utils import get_current_actor
 
 def log_event(
@@ -249,26 +249,28 @@ def get_dependents(session: Session, task_id: int) -> List[Task]:
 
 # --- Comments ---
 
-def add_comment(session: Session, task_id: int, author: str, content: str) -> Optional[Comment]:
-    task = get_task(session, task_id)
-    if not task:
-        return None
+def add_comment(session: Session, task_id: Optional[int], author: str, content: str) -> Optional[Comment]:
+    if task_id is not None:
+        task = get_task(session, task_id)
+        if not task:
+            return None
         
     comment = Comment(task_id=task_id, author=author, content=content)
     session.add(comment)
     session.commit()
     session.refresh(comment)
     
+    t_msg = f" for Task {task_id}" if task_id else " for project"
     log_event(
         session=session,
         event_type="comment_added",
-        details=f"Added comment by {author}: '{content[:30]}...'",
+        details=f"Added comment by {author}{t_msg}: '{content[:30]}...'",
         task_id=task_id,
         actor=author
     )
     return comment
 
-def get_comments(session: Session, task_id: int) -> List[Comment]:
+def get_comments(session: Session, task_id: Optional[int] = None) -> List[Comment]:
     statement = select(Comment).where(Comment.task_id == task_id).order_by(Comment.created_at.asc())
     return session.exec(statement).all()
 
@@ -351,6 +353,56 @@ def list_memories(session: Session) -> List[Memory]:
 
 # --- Activity Feed ---
 
-def get_events(session: Session, limit: int = 50) -> List[Event]:
-    statement = select(Event).order_by(Event.created_at.desc()).limit(limit)
+def get_events(session: Session, task_id: Optional[int] = None, limit: int = 50) -> List[Event]:
+    statement = select(Event)
+    if task_id is not None:
+        statement = statement.where(Event.task_id == task_id)
+    statement = statement.order_by(Event.created_at.desc()).limit(limit)
     return session.exec(statement).all()
+
+# --- Project Operations ---
+
+def get_project(session: Session) -> Project:
+    """Get the project metadata. Auto-creates single row with defaults if empty."""
+    statement = select(Project)
+    project = session.exec(statement).first()
+    if not project:
+        project = Project(
+            name="My Hive Project",
+            details="No project details yet.",
+            overall_idea="No overall idea yet."
+        )
+        session.add(project)
+        session.commit()
+        session.refresh(project)
+    return project
+
+def update_project(
+    session: Session,
+    name: Optional[str] = None,
+    details: Optional[str] = None,
+    overall_idea: Optional[str] = None
+) -> Project:
+    project = get_project(session)
+    changes = []
+    if name is not None and name != project.name:
+        changes.append(f"name: '{project.name}' -> '{name}'")
+        project.name = name
+    if details is not None and details != project.details:
+        changes.append("details updated")
+        project.details = details
+    if overall_idea is not None and overall_idea != project.overall_idea:
+        changes.append("overall idea updated")
+        project.overall_idea = overall_idea
+        
+    if changes:
+        project.updated_at = datetime.now(timezone.utc)
+        session.add(project)
+        session.commit()
+        session.refresh(project)
+        log_event(
+            session=session,
+            event_type="project_updated",
+            details=f"Updated project: {', '.join(changes)}"
+        )
+    return project

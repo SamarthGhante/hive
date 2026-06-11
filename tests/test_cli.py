@@ -100,3 +100,32 @@ def test_cli_feed():
     result = runner.invoke(app, ["feed"])
     assert result.exit_code == 0
     assert "TASK_CREATED" in result.stdout
+
+def test_cli_project():
+    # Show initial
+    result = runner.invoke(app, ["project", "show"])
+    assert result.exit_code == 0
+    assert "My Hive Project" in result.stdout
+    
+    # Update
+    result = runner.invoke(app, ["project", "update", "--name", "New Project CLI", "--details", "Cli details", "--idea", "Cli idea"])
+    assert result.exit_code == 0
+    assert "Project updated successfully" in result.stdout
+    
+    # Show updated
+    result = runner.invoke(app, ["project", "show"])
+    assert result.exit_code == 0
+    assert "New Project CLI" in result.stdout
+    assert "Cli details" in result.stdout
+    assert "Cli idea" in result.stdout
+
+def test_cli_comment_project():
+    result = runner.invoke(app, ["comment", "add", "--project", "--content", "CLI Project Comment"])
+    assert result.exit_code == 0
+    assert "Successfully added comment to project" in result.stdout
+
+def test_cli_feed_filtering():
+    runner.invoke(app, ["task", "create", "--title", "Filter Task"])
+    result = runner.invoke(app, ["feed", "--task-id", "1"])
+    assert result.exit_code == 0
+    assert "TASK_CREATED" in result.stdout

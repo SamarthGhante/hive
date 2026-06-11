@@ -135,3 +135,32 @@ def test_memories(session: Session):
     assert len(memories) == 1
     assert memories[0].key == "key1"
     assert memories[0].value == "value2"
+
+def test_project_metadata(session: Session):
+    # Test auto-create defaults
+    project = crud.get_project(session)
+    assert project.name == "My Hive Project"
+    assert project.details == "No project details yet."
+    assert project.overall_idea == "No overall idea yet."
+    
+    # Test update
+    updated = crud.update_project(
+        session,
+        name="New Project Name",
+        details="Brand new details",
+        overall_idea="Brand new idea"
+    )
+    assert updated.name == "New Project Name"
+    assert updated.details == "Brand new details"
+    assert updated.overall_idea == "Brand new idea"
+
+def test_project_comments(session: Session):
+    # Comment without task_id
+    comment = crud.add_comment(session, task_id=None, author="project_agent", content="Project level comment.")
+    assert comment is not None
+    assert comment.task_id is None
+    assert comment.content == "Project level comment."
+    
+    comments = crud.get_comments(session, task_id=None)
+    assert len(comments) == 1
+    assert comments[0].content == "Project level comment."

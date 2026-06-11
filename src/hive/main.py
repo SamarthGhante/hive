@@ -10,7 +10,7 @@ from rich.tree import Tree
 from rich import print as rprint
 from sqlmodel import select
 from hive.database import get_engine, init_db, get_db_path, get_session
-from hive.models import Task, Dependency, Comment, Decision, Memory, Event
+from hive.models import Task, Dependency, Comment, Decision, Memory, Event, Project
 import hive.crud as crud
 from hive.utils import get_current_actor, format_priority, format_status, format_datetime
 
@@ -24,12 +24,14 @@ dep_app = typer.Typer(help="Manage task dependencies", no_args_is_help=True)
 comment_app = typer.Typer(help="Manage task comments", no_args_is_help=True)
 decision_app = typer.Typer(help="Manage decisions", no_args_is_help=True)
 memory_app = typer.Typer(help="Manage project memories", no_args_is_help=True)
+project_app = typer.Typer(help="Manage project metadata", no_args_is_help=True)
 
 app.add_typer(task_app, name="task")
 app.add_typer(dep_app, name="dep")
 app.add_typer(comment_app, name="comment")
 app.add_typer(decision_app, name="decision")
 app.add_typer(memory_app, name="memory")
+app.add_typer(project_app, name="project")
 
 console = Console()
 
@@ -46,10 +48,13 @@ def init():
         console.print(f"[green]Initialized Hive database at {db_path}[/green]")
 
 @app.command("feed")
-def feed(limit: int = typer.Option(30, help="Number of activity events to display")):
+def feed(
+    limit: int = typer.Option(30, help="Number of activity events to display"),
+    task_id: Optional[int] = typer.Option(None, "--task-id", "-t", help="Filter events by Task ID")
+):
     """Show recent activity feed / event log."""
     with get_session() as session:
-        events = crud.get_events(session, limit)
+        events = crud.get_events(session, task_id=task_id, limit=limit)
         if not events:
             console.print("[yellow]No activity events found.[/yellow]")
             return
@@ -364,17 +369,28 @@ def dep_graph():
 
 @comment_app.command("add")
 def comment_add(
-    task_id: int = typer.Argument(..., help="Task ID to comment on"),
-    content: str = typer.Option(..., "--content", "-c", prompt="Enter comment content", help="Comment body")
+    task_id: Optional[int] = typer.Argument(None, help="Task ID to comment on (leave empty if --project is set)"),
+    content: str = typer.Option(..., "--content", "-c", prompt="Enter comment content", help="Comment body"),
+    project: bool = typer.Option(False, "--project", "-p", help="Add comment to the project level rather than a specific task")
 ):
-    """Add a comment to a task."""
+    """Add a comment to a task or project."""
+    if not project and task_id is None:
+        console.print("[red]Error: Must specify Task ID or pass --project flag.[/red]")
+        raise typer.Exit(1)
+    if project and task_id is not None:
+        console.print("[red]Error: Cannot specify both a Task ID and the --project flag.[/red]")
+        raise typer.Exit(1)
+        
     author = get_current_actor()
     with get_session() as session:
-        comment = crud.add_comment(session, task_id, author, content)
-        if not comment:
+        comment = crud.add_comment(session, task_id if not project else None, author, content)
+        if not project and not comment:
             console.print(f"[red]Error: Task #{task_id} not found.[/red]")
             raise typer.Exit(1)
-        console.print(f"[green]Successfully added comment to task #{task_id}[/green]")
+        if project:
+            console.print("[green]Successfully added comment to project[/green]")
+        else:
+            console.print(f"[green]Successfully added comment to task #{task_id}[/green]")
 
 # --- Decision Commands ---
 
@@ -448,6 +464,68 @@ def memory_list():
         for m in memories:
             table.add_row(m.key, m.value, format_datetime(m.updated_at))
         console.print(table)
+
+# --- Project Commands ---
+
+@project_app.command("show")
+def project_show():
+    """Show project metadata and general statistics."""
+    with get_session() as session:
+        project = crud.get_project(session)
+        tasks = crud.list_tasks(session)
+        
+        # Calculate stats
+        total_tasks = len(tasks)
+        todo_count = sum(1 for t in tasks if t.status == "todo")
+        in_progress_count = sum(1 for t in tasks if t.status == "in_progress")
+        review_count = sum(1 for t in tasks if t.status == "review")
+        done_count = sum(1 for t in tasks if t.status == "done")
+        
+        avg_progress = 0
+        if total_tasks > 0:
+            avg_progress = int(sum(t.progress for t in tasks) / total_tasks)
+            
+        assignees = {t.assignee for t in tasks if t.assignee}
+        
+        # Print Project Info
+        console.print(Panel(
+            f"[bold cyan]Name:[/bold cyan] {project.name}\n"
+            f"[bold cyan]Details:[/bold cyan] {project.details or 'No details.'}\n"
+            f"[bold cyan]Overall Idea:[/bold cyan] {project.overall_idea or 'No overall idea.'}\n"
+            f"[bold cyan]Last Updated:[/bold cyan] {format_datetime(project.updated_at)}",
+            title="Hive Project Metadata",
+            border_style="magenta"
+        ))
+        
+        # Print Stats Info
+        stats_table = Table(title="Task Statistics", show_header=True, header_style="bold green")
+        stats_table.add_column("Metric", style="bold")
+        stats_table.add_column("Value", style="white")
+        
+        stats_table.add_row("Total Tasks", str(total_tasks))
+        stats_table.add_row("Todo", str(todo_count))
+        stats_table.add_row("In Progress", str(in_progress_count))
+        stats_table.add_row("Review", str(review_count))
+        stats_table.add_row("Done", str(done_count))
+        stats_table.add_row("Average Progress", f"{avg_progress}%")
+        stats_table.add_row("Active Team Members", str(len(assignees)))
+        
+        console.print(stats_table)
+
+@project_app.command("update")
+def project_update(
+    name: Optional[str] = typer.Option(None, "--name", help="Project name"),
+    details: Optional[str] = typer.Option(None, "--details", help="Project details / description"),
+    overall_idea: Optional[str] = typer.Option(None, "--idea", help="Project overall goal or idea")
+):
+    """Update project metadata."""
+    if name is None and details is None and overall_idea is None:
+        console.print("[yellow]No updates specified. Use --name, --details, or --idea.[/yellow]")
+        return
+        
+    with get_session() as session:
+        crud.update_project(session, name=name, details=details, overall_idea=overall_idea)
+        console.print("[green]Project updated successfully.[/green]")
 
 # --- Interactive TUI Launcher ---
 
