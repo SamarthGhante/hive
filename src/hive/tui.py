@@ -538,7 +538,7 @@ class HiveTUIApp(App):
 
         comment_content = []
         for c in comments:
-            comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
+            comment_content.append(f"[bold #60a5fa]@{c.author}[/] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
         if not comment_content:
             comment_content.append("[italic #71717a]No project comments yet. Type comment directly in the Project Console.[/italic #71717a]")
         comments_box.update("\n".join(comment_content))
@@ -565,7 +565,7 @@ class HiveTUIApp(App):
         project_log.clear()
         for e in reversed(events):
             time_str = format_datetime(e.created_at)
-            task_part = f" [#60a5fa]#{e.task_id}[/bold #60a5fa]" if e.task_id else ""
+            task_part = f" [#60a5fa]#{e.task_id}[/] " if e.task_id else ""
             project_log.write(f"[#71717a][{time_str}][/#71717a] [#22d3ee]@{e.actor}[/#22d3ee] [bold #34d399]{e.event_type.upper()}[/bold #34d399]{task_part}: [#e4e4e7]{e.details}[/#e4e4e7]")
 
     async def async_refresh_task_details(self) -> None:
@@ -603,7 +603,7 @@ class HiveTUIApp(App):
 
         comment_content = []
         for c in comments:
-            comment_content.append(f"[bold #60a5fa]@{c.author}[/bold #60a5fa] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
+            comment_content.append(f"[bold #60a5fa]@{c.author}[/] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
         if not comment_content:
             comment_content.append("[italic #71717a]No comments yet. Type comments directly in the Workspace Console below.[/italic #71717a]")
         comments_box.update("\n".join(comment_content))
