@@ -97,44 +97,46 @@ class HiveTUIApp(App):
     }
     
     .comment-list {
-        height: 70%;
+        height: 1fr;
         border: solid #2d2d2d;
         padding: 1;
         background: #1e1e1e;
         overflow-y: scroll;
+        margin-bottom: 1;
     }
     
     .comment-input-box {
-        height: 25%;
-        margin-top: 1;
+        height: 6;
+        border-top: solid #3c3c3c;
+        padding-top: 1;
     }
     
     .decision-list {
-        height: 60%;
+        height: 1fr;
         border: solid #2d2d2d;
         padding: 1;
         background: #1e1e1e;
         overflow-y: scroll;
+        margin-bottom: 1;
     }
     
     .decision-form {
-        height: 38%;
-        margin-top: 1;
+        height: 11;
         border-top: solid #3c3c3c;
         padding-top: 1;
     }
     
     .memory-list {
-        height: 60%;
+        height: 1fr;
         border: solid #2d2d2d;
         padding: 1;
         background: #1e1e1e;
         overflow-y: scroll;
+        margin-bottom: 1;
     }
     
     .memory-form {
-        height: 38%;
-        margin-top: 1;
+        height: 8;
         border-top: solid #3c3c3c;
         padding-top: 1;
     }
@@ -205,19 +207,8 @@ class HiveTUIApp(App):
         table = self.query_one("#task-table", DataTable)
         table.clear()
         
-        # Save cursor position or selected row if possible
         prev_selected_id = self.selected_task_id
-        
-        # Add a special "none" selection row at the top to deselect/view project details
-        table.add_row(
-            "-",
-            "[bold cyan]🔍 Project Overview (Deselect Task)[/bold cyan]",
-            "-",
-            "-",
-            "-",
-            "-",
-            key="none"
-        )
+        tasks = []
         
         with get_session() as session:
             tasks = crud.list_tasks(session)
@@ -234,18 +225,19 @@ class HiveTUIApp(App):
                     key=str(t.id)
                 )
         
-        # Reselect previous if still exists
+        # Reselect previous if still exists, otherwise default to first task
         if prev_selected_id:
             try:
                 table.move_cursor(row=table.find_row(str(prev_selected_id)))
             except Exception:
                 pass
         else:
-            # select project overview row by default
-            try:
-                table.move_cursor(row=table.find_row("none"))
-            except Exception:
-                pass
+            if tasks:
+                try:
+                    table.move_cursor(row=0)
+                    self.selected_task_id = tasks[0].id
+                except Exception:
+                    pass
         
         # Trigger details refresh
         self.update_details_view()
@@ -262,19 +254,15 @@ class HiveTUIApp(App):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         row_key = event.row_key.value
-        if row_key == "none":
-            self.selected_task_id = None
-        elif row_key:
+        if row_key:
             self.selected_task_id = int(row_key)
-        self.update_details_view()
+            self.update_details_view()
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         row_key = event.row_key.value
-        if row_key == "none":
-            self.selected_task_id = None
-        elif row_key:
+        if row_key:
             self.selected_task_id = int(row_key)
-        self.update_details_view()
+            self.update_details_view()
 
     def update_details_view(self) -> None:
         details_box = self.query_one("#details-view", Static)
@@ -293,45 +281,20 @@ class HiveTUIApp(App):
             memories_box.update("\n".join(memory_lines))
             
             if not self.selected_task_id:
-                # No task selected -> show Project Overview in Details
-                root = find_project_root()
-                tasks = crud.list_tasks(session)
-                total_tasks = len(tasks)
-                todo_tasks = sum(1 for t in tasks if t.status == "todo")
-                in_progress_tasks = sum(1 for t in tasks if t.status == "in_progress")
-                review_tasks = sum(1 for t in tasks if t.status == "review")
-                done_tasks = sum(1 for t in tasks if t.status == "done")
+                # If there are no tasks in the project at all
+                details_box.update(Panel("No tasks found. Use the quick create input on the left to create a task.", title="Details"))
+                comments_box.update("Create a task to view comments.")
                 
-                decisions = crud.get_decisions(session, task_id=None) # project-level only
-                total_decisions = len(decisions)
-                total_memories = len(memories)
-                
-                details_text = Text.assemble(
-                    ("Project Name: ", "bold"), f"{root.name}\n",
-                    ("Root Path:    ", "bold"), f"{root}\n\n",
-                    ("📊 Project Statistics:\n", "bold blue"),
-                    ("  • Total Tasks:        ", "bold"), f"{total_tasks}\n",
-                    ("  • Todo Tasks:         ", "bold grey"), f" {todo_tasks}\n",
-                    ("  • In Progress Tasks:  ", "bold blue"), f" {in_progress_tasks}\n",
-                    ("  • Review Tasks:       ", "bold yellow"), f" {review_tasks}\n",
-                    ("  • Completed Tasks:    ", "bold green"), f" {done_tasks}\n\n",
-                    ("  • Project Decisions:  ", "bold magenta"), f" {total_decisions}\n",
-                    ("  • Project Memories:   ", "bold cyan"), f" {total_memories}"
-                )
-                details_box.update(Panel(details_text, title="Project Overview"))
-                
-                # Comments panel helper
-                comments_box.update("Select a task on the left to view comment threads.")
-                
-                # Project decisions
+                # Show project decisions
+                decisions = crud.get_decisions(session, task_id=None)
                 decision_content = []
                 for d in decisions:
                     decision_content.append(f"[bold magenta]{d.title}[/bold magenta] by @{d.author} ({format_datetime(d.created_at)})\n[italic]Context:[/italic] {d.context}\n[bold]Decision:[/bold] {d.decision}\n---")
                 if not decision_content:
-                    decision_content.append("No project-level decisions recorded yet.")
+                    decision_content.append("No decisions recorded yet.")
                 decisions_box.update("\n".join(decision_content))
                 
-                # Disable task specific details actions
+                # Disable buttons
                 self.query_one("#btn-claim", Button).disabled = True
                 self.query_one("#btn-status", Button).disabled = True
                 self.query_one("#btn-complete", Button).disabled = True
