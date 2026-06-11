@@ -42,13 +42,13 @@ class HiveTUIApp(App):
     }
 
     Header {
-        background: $background;
+        background: $surface;
         color: $text;
         dock: top;
     }
 
     Footer {
-        background: $background;
+        background: $surface;
         color: $text-muted;
     }
 
@@ -62,12 +62,10 @@ class HiveTUIApp(App):
 
     DataTable {
         color: $text;
-        background: $background;
     }
 
     RichLog {
         color: $text;
-        background: $background;
     }
 
     #app-container {
@@ -79,9 +77,8 @@ class HiveTUIApp(App):
     #nav-tabs {
         width: 100%;
         height: auto;
-        background: $background;
+        background: $surface;
         dock: top;
-        border-bottom: solid $surface;
     }
 
     #nav-tabs Tab {
@@ -92,7 +89,7 @@ class HiveTUIApp(App):
 
     #nav-tabs Tab:hover {
         color: $text;
-        background: transparent;
+        background: $panel;
     }
 
     #nav-tabs Tab.-active {
@@ -107,14 +104,14 @@ class HiveTUIApp(App):
         content-align: right middle;
         width: 100%;
         padding: 0 1;
-        background: $background;
+        background: $surface;
     }
 
     #main-content {
         width: 100%;
         height: 1fr;
         background: $background;
-        padding: 0;
+        padding: 1;
     }
 
     ContentSwitcher {
@@ -133,58 +130,60 @@ class HiveTUIApp(App):
     .left-column {
         width: 45%;
         height: 100%;
-        border-right: solid $surface;
+        border: tall $panel;
         padding: 0 1;
-        background: $background;
+        margin-right: 1;
+        background: $surface;
     }
 
     .right-column {
         width: 55%;
         height: 100%;
+        border: tall $panel;
         padding: 0 1;
-        background: $background;
+        background: $surface;
     }
 
     .section-title {
         text-style: bold;
         color: $text-muted;
-        padding: 0 1;
-        margin-bottom: 0;
+        padding: 0 0 1 0;
     }
 
     #task-table {
         height: 1fr;
         background: $background;
+        border: tall $panel;
     }
 
     DataTable > .datatable--header {
-        background: $background;
+        background: $surface;
         color: $text-muted;
         text-style: bold;
     }
 
     DataTable > .datatable--cursor {
-        background: $surface;
+        background: $primary 30%;
         color: $text;
         text-style: bold;
     }
 
     DataTable > .datatable--hover {
-        background: $surface 50%;
+        background: $panel;
     }
 
     .form-container {
         height: auto;
-        border-top: solid $surface;
+        border-top: solid $panel;
         margin-top: 0;
         layout: vertical;
-        background: $background;
-        padding: 0 1;
+        background: $surface;
+        padding: 1 0 0 0;
     }
 
     Input {
-        background: $surface;
-        border: tall $surface;
+        background: $background;
+        border: tall $panel;
         color: $text;
         margin: 0 0 1 0;
     }
@@ -194,13 +193,13 @@ class HiveTUIApp(App):
     }
 
     TabbedContent {
-        background: $background;
+        background: $surface;
         height: 1fr;
     }
 
     TabbedContent > Tabs {
-        background: $background;
-        border-bottom: solid $surface;
+        background: $surface;
+        border-bottom: solid $panel;
     }
 
     TabbedContent > Tabs > Tab {
@@ -209,7 +208,7 @@ class HiveTUIApp(App):
     }
 
     TabbedContent > Tabs > Tab:hover {
-        background: transparent;
+        background: $panel;
         color: $text;
     }
 
@@ -221,9 +220,10 @@ class HiveTUIApp(App):
 
     .scrollable-pane {
         height: 1fr;
-        padding: 0 1;
+        padding: 1;
         background: $background;
-        margin-bottom: 0;
+        border: tall $panel;
+        margin: 0 0 1 0;
     }
 
     .scrollable-pane > Static {
@@ -232,7 +232,6 @@ class HiveTUIApp(App):
 
     #details-view, #project-info-view {
         padding: 0;
-        background: $background;
         border: none;
         height: auto;
     }
@@ -242,7 +241,6 @@ class HiveTUIApp(App):
         height: 3;
         align: center middle;
         margin-top: 0;
-        border-top: solid $surface;
     }
 
     .action-btn {
@@ -253,26 +251,27 @@ class HiveTUIApp(App):
 
     .input-box-pane {
         height: auto;
-        border-top: solid $surface;
-        background: $background;
-        padding: 0 1;
+        border-top: solid $panel;
+        background: $surface;
+        padding: 1 0 0 0;
     }
 
     #task-feed-log, #project-feed-log {
         height: 1fr;
         background: $background;
+        border: tall $panel;
         padding: 0 1;
     }
 
     Button {
-        background: $surface;
+        background: $panel;
         color: $text;
         border: none;
         height: 3;
     }
 
     Button:hover {
-        background: $panel;
+        background: $primary 30%;
         color: $text;
     }
 
@@ -282,22 +281,22 @@ class HiveTUIApp(App):
     }
 
     #btn-claim {
-        background: $surface;
+        background: $panel;
         color: $text-muted;
     }
 
     #btn-claim:hover {
-        background: $panel;
+        background: $primary 30%;
         color: $text;
     }
 
     #btn-status {
-        background: $surface;
+        background: $panel;
         color: $text-muted;
     }
 
     #btn-status:hover {
-        background: $panel;
+        background: $primary 30%;
         color: $text;
     }
 
@@ -307,7 +306,7 @@ class HiveTUIApp(App):
     }
 
     #btn-complete:hover {
-        background: $success 60%;
+        background: $success 50%;
         color: $text;
     }
     """
