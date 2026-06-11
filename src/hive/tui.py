@@ -9,6 +9,7 @@ from textual.widgets import (
     Button, Input, Label, RichLog, ContentSwitcher
 )
 from textual.reactive import reactive
+from textual.events import Resize
 from rich.panel import Panel
 from rich.text import Text
 from rich.console import Group
@@ -333,29 +334,6 @@ class HiveTUIApp(App):
     #btn-complete:hover {
         background: #15803d;
     }
-    
-    @media (max-width: 90) {
-        .page-container {
-            layout: vertical;
-        }
-        .left-column {
-            width: 100%;
-            height: 50%;
-            margin-right: 0;
-            margin-bottom: 1;
-        }
-        .right-column {
-            width: 100%;
-            height: 50%;
-            margin-left: 0;
-        }
-    }
-    
-    @media (max-width: 70) {
-        #nav-stats {
-            display: none;
-        }
-    }
     """
 
     selected_task_id = reactive(None)
@@ -458,6 +436,36 @@ class HiveTUIApp(App):
                                 with TabPane("Project Activity"):
                                     yield RichLog(id="project-feed-log", highlight=True, markup=True)
         yield Footer()
+
+    def on_resize(self, event: Resize) -> None:
+        is_narrow = event.size.width < 90
+        
+        # 1. Update page container layouts
+        for pane_id in ("#pane-tasks", "#pane-project"):
+            try:
+                pane = self.query_one(pane_id)
+                pane.styles.layout = "vertical" if is_narrow else "horizontal"
+            except Exception:
+                pass
+                
+        # 2. Update column dimensions
+        for col in self.query(".left-column"):
+            col.styles.width = "100%" if is_narrow else "45%"
+            col.styles.height = "1fr" if is_narrow else "100%"
+            col.styles.margin_right = 0 if is_narrow else 1
+            col.styles.margin_bottom = 1 if is_narrow else 0
+            
+        for col in self.query(".right-column"):
+            col.styles.width = "100%" if is_narrow else "55%"
+            col.styles.height = "1fr" if is_narrow else "100%"
+            col.styles.margin_left = 0 if is_narrow else 1
+            
+        # 3. Toggle nav stats visibility based on width 70 threshold
+        try:
+            stats = self.query_one("#nav-stats")
+            stats.styles.display = "none" if event.size.width < 70 else "block"
+        except Exception:
+            pass
 
     def on_mount(self) -> None:
         self.theme = "textual-dark"
