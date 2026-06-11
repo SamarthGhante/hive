@@ -154,7 +154,7 @@ class HiveTUIApp(App):
         width: 45%;
         height: 100%;
         border: solid #2e2e33;
-        padding: 1;
+        padding: 0 1;
         margin-right: 1;
         background: #202023;
     }
@@ -163,7 +163,7 @@ class HiveTUIApp(App):
         width: 55%;
         height: 100%;
         border: solid #2e2e33;
-        padding: 1;
+        padding: 0 1;
         margin-left: 1;
         background: #202023;
     }
@@ -171,7 +171,7 @@ class HiveTUIApp(App):
     .section-title {
         text-style: bold;
         color: #a1a1aa;
-        margin-bottom: 1;
+        margin-bottom: 0;
         border-bottom: solid #2e2e33;
     }
     
@@ -196,22 +196,21 @@ class HiveTUIApp(App):
     .form-container {
         height: auto;
         border-top: solid #2e2e33;
-        padding-top: 1;
-        margin-top: 1;
+        margin-top: 0;
         layout: vertical;
         background: #202023;
-        padding: 1;
+        padding: 0 1;
     }
     
     Input {
         background: #18181b;
-        border: tall #2e2e33;
+        border: solid #2e2e33;
         color: #e4e4e7;
-        margin-bottom: 1;
+        margin-bottom: 0;
     }
     
     Input:focus {
-        border: tall #3f3f46;
+        border: solid #3f3f46;
     }
     
     TabbedContent {
@@ -243,9 +242,9 @@ class HiveTUIApp(App):
     .scrollable-pane {
         height: 1fr;
         border: solid #2e2e33;
-        padding: 1;
+        padding: 0 1;
         background: #18181b;
-        margin-bottom: 1;
+        margin-bottom: 0;
     }
     
     .scrollable-pane > Static {
@@ -253,7 +252,7 @@ class HiveTUIApp(App):
     }
     
     #details-view, #project-info-view {
-        padding: 1;
+        padding: 0;
         background: #18181b;
         border: none;
         height: auto;
@@ -263,7 +262,7 @@ class HiveTUIApp(App):
         layout: horizontal;
         height: 3;
         align: center middle;
-        margin-top: 1;
+        margin-top: 0;
     }
     
     .action-btn {
@@ -274,16 +273,15 @@ class HiveTUIApp(App):
     .input-box-pane {
         height: auto;
         border-top: solid #2e2e33;
-        padding-top: 1;
         background: #202023;
-        padding: 1;
+        padding: 0 1;
     }
     
     #task-feed-log, #project-feed-log {
         height: 1fr;
         background: #18181b;
         border: solid #2e2e33;
-        padding: 1;
+        padding: 0 1;
     }
     
     Button {
@@ -340,10 +338,10 @@ class HiveTUIApp(App):
         with Vertical(id="app-container"):
             # Top Navigation Bar
             with Horizontal(id="top-nav"):
-                yield Label("⚡ H I V E", id="nav-logo")
+                yield Label("H I V E", id="nav-logo")
                 with Horizontal(id="nav-buttons"):
-                    yield Button("📋 Task Board", id="nav-tasks", classes="nav-btn -active")
-                    yield Button("🏢 Project Hub", id="nav-project", classes="nav-btn")
+                    yield Button("Task Board", id="nav-tasks", classes="nav-btn -active")
+                    yield Button("Project Hub", id="nav-project", classes="nav-btn")
                 yield Static(id="nav-stats")
             
             # Bottom Main Content area
@@ -353,7 +351,7 @@ class HiveTUIApp(App):
                     with Horizontal(id="pane-tasks", classes="page-container"):
                         # Left Column
                         with Vertical(id="left-pane", classes="left-column"):
-                            yield Label("📋 Tasks", classes="section-title")
+                            yield Label("Tasks", classes="section-title")
                             yield DataTable(id="task-table")
                             with Vertical(id="new-task-form", classes="form-container"):
                                 yield Label("[bold cyan]Quick Create Task[/bold cyan]")
@@ -394,7 +392,7 @@ class HiveTUIApp(App):
                     with Horizontal(id="pane-project", classes="page-container"):
                         # Left Column
                         with Vertical(id="project-left-pane", classes="left-column"):
-                            yield Label("🏢 Project Info", classes="section-title")
+                            yield Label("Project Info", classes="section-title")
                             with VerticalScroll(classes="scrollable-pane"):
                                 yield Static(id="project-info-view")
                             with Vertical(id="project-update-form", classes="form-container"):
@@ -612,7 +610,7 @@ class HiveTUIApp(App):
                     decision_content.append("[bold underline #34d399]Task Decisions:[/bold underline #34d399]")
                     for d in task_decisions:
                         decision_content.append(
-                            f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
+                            f"[bold #f4f4f5]{d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
                             f"[italic #a1a1aa]Context:[/italic #a1a1aa] [#e4e4e7]{d.context}[/#e4e4e7]\n"
                             f"[bold #34d399]Decision:[/bold #34d399] [#e4e4e7]{d.decision}[/#e4e4e7]\n"
                             f"[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]"
@@ -701,7 +699,7 @@ class HiveTUIApp(App):
             decision_content = []
             for d in decisions:
                 decision_content.append(
-                    f"[bold #f4f4f5]⚡ {d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
+                    f"[bold #f4f4f5]{d.title}[/bold #f4f4f5] [#71717a]by @{d.author} ({format_datetime(d.created_at)})[/#71717a]\n"
                     f"[italic #a1a1aa]Context:[/italic #a1a1aa] [#e4e4e7]{d.context}[/#e4e4e7]\n"
                     f"[bold #34d399]Decision:[/bold #34d399] [#e4e4e7]{d.decision}[/#e4e4e7]\n"
                     f"[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]"
@@ -714,7 +712,7 @@ class HiveTUIApp(App):
             memories = crud.list_memories(session)
             memory_lines = []
             for m in memories:
-                memory_lines.append(f"[bold #fbbf24]🧠 {m.key}[/bold #fbbf24] = [#e4e4e7]{m.value}[/#e4e4e7] [#71717a]({format_datetime(m.updated_at)})[/#71717a]\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
+                memory_lines.append(f"[bold #fbbf24]{m.key}[/bold #fbbf24] = [#e4e4e7]{m.value}[/#e4e4e7] [#71717a]({format_datetime(m.updated_at)})[/#71717a]\n[#2e2e33]──────────────────────────────────────────────────[/#2e2e33]")
             if not memory_lines:
                 memory_lines.append("[italic #71717a]No project memories stored yet. Add one below.[/italic #71717a]")
             memories_box.update("\n".join(memory_lines))
