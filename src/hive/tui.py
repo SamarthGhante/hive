@@ -135,63 +135,41 @@ class HiveTUIApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Container(
+        with Container(id="main-container"):
             # Left Column
-            Vertical(
-                Label("📋 Tasks", classes="section-title"),
-                DataTable(id="task-table"),
-                Vertical(
-                    Label("[bold]Quick Create Task[/bold] (Enter Title)"),
-                    Input(placeholder="Type task title and press Enter...", id="new-task-title"),
-                    id="new-task-form"
-                ),
-                id="left-pane"
-            ),
+            with Vertical(id="left-pane"):
+                yield Label("📋 Tasks", classes="section-title")
+                yield DataTable(id="task-table")
+                with Vertical(id="new-task-form"):
+                    yield Label("[bold]Quick Create Task[/bold] (Enter Title)")
+                    yield Input(placeholder="Type task title and press Enter...", id="new-task-title")
+            
             # Right Column
-            Vertical(
-                TabbedContent(
-                    TabPane("Details", 
-                        Vertical(
-                            Static(id="details-view"),
-                            Horizontal(
-                                Button("Claim Task (c)", id="btn-claim", variant="primary", classes="action-btn"),
-                                Button("Cycle Status (s)", id="btn-status", variant="default", classes="action-btn"),
-                                Button("Complete Task", id="btn-complete", variant="success", classes="action-btn"),
-                                id="details-actions"
-                            )
-                        )
-                    ),
-                    TabPane("Comments", 
-                        Vertical(
-                            Static(id="comments-list", classes="comment-list"),
-                            Vertical(
-                                Label("Add Comment:"),
-                                Input(placeholder="Type comment and press Enter...", id="new-comment-input"),
-                                classes="comment-input-box"
-                            )
-                        )
-                    ),
-                    TabPane("Decisions", 
-                        Vertical(
-                            Static(id="decisions-list", classes="decision-list"),
-                            Vertical(
-                                Label("[bold]Record Decision[/bold]"),
-                                Input(placeholder="Decision Title...", id="dec-title"),
-                                Input(placeholder="Context/Reasoning...", id="dec-context"),
-                                Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="dec-text"),
-                                classes="decision-form"
-                            )
-                        )
-                    ),
-                    TabPane("Activity Feed", 
-                        RichLog(id="feed-log", highlight=True, markup=True)
-                    ),
-                    id="tabs"
-                ),
-                id="right-pane"
-            ),
-            id="main-container"
-        )
+            with Vertical(id="right-pane"):
+                with TabbedContent(id="tabs"):
+                    with TabPane("Details"):
+                        yield Static(id="details-view")
+                        with Horizontal(id="details-actions"):
+                            yield Button("Claim Task (c)", id="btn-claim", variant="primary", classes="action-btn")
+                            yield Button("Cycle Status (s)", id="btn-status", variant="default", classes="action-btn")
+                            yield Button("Complete Task", id="btn-complete", variant="success", classes="action-btn")
+                    
+                    with TabPane("Comments"):
+                        yield Static(id="comments-list", classes="comment-list")
+                        with Vertical(classes="comment-input-box"):
+                            yield Label("Add Comment:")
+                            yield Input(placeholder="Type comment and press Enter...", id="new-comment-input")
+                    
+                    with TabPane("Decisions"):
+                        yield Static(id="decisions-list", classes="decision-list")
+                        with Vertical(classes="decision-form"):
+                            yield Label("[bold]Record Decision[/bold]")
+                            yield Input(placeholder="Decision Title...", id="dec-title")
+                            yield Input(placeholder="Context/Reasoning...", id="dec-context")
+                            yield Input(placeholder="Resolution/Decision details... (Press Enter to save)", id="dec-text")
+                    
+                    with TabPane("Activity Feed"):
+                        yield RichLog(id="feed-log", highlight=True, markup=True)
         yield Footer()
 
     def on_mount(self) -> None:
