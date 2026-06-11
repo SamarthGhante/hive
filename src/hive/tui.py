@@ -22,6 +22,7 @@ from hive.utils import get_current_actor, format_priority, format_status, format
 class HiveTUIApp(App):
     TITLE = "Hive Coordination Dashboard"
     SUBTITLE = "Collaborative Execution Layer"
+    theme = "textual-dark"
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("r", "refresh", "Refresh All"),
@@ -434,9 +435,17 @@ class HiveTUIApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        self.theme = "textual-dark"
         table = self.query_one("#task-table", DataTable)
         table.cursor_type = "row"
-        table.add_columns("ID", "Title", "Status", "Priority", "Progress", "Assignee")
+        table.add_columns(
+            "[#a1a1aa]ID[/#a1a1aa]",
+            "[#a1a1aa]Title[/#a1a1aa]",
+            "[#a1a1aa]Status[/#a1a1aa]",
+            "[#a1a1aa]Priority[/#a1a1aa]",
+            "[#a1a1aa]Progress[/#a1a1aa]",
+            "[#a1a1aa]Assignee[/#a1a1aa]"
+        )
         self.refresh_tasks()
         self.update_project_view()
         self.refresh_feed()
@@ -517,8 +526,8 @@ class HiveTUIApp(App):
             project_events = crud.get_events(session, limit=50)
             for e in reversed(project_events):
                 time_str = format_datetime(e.created_at)
-                task_part = f" [blue]#{e.task_id}[/blue]" if e.task_id else ""
-                project_log.write(f"[{time_str}] [cyan]{e.actor}[/cyan] [bold green]{e.event_type.upper()}[/bold green]{task_part}: {e.details}")
+                task_part = f" [#60a5fa]#{e.task_id}[/#60a5fa]" if e.task_id else ""
+                project_log.write(f"[#71717a][{time_str}][/#71717a] [#22d3ee]@{e.actor}[/#22d3ee] [bold #34d399]{e.event_type.upper()}[/bold #34d399]{task_part}: [#e4e4e7]{e.details}[/#e4e4e7]")
                 
         # 2. Update Task Feed Log (filtered by selected task)
         task_log = self.query_one("#task-feed-log", RichLog)
@@ -528,9 +537,9 @@ class HiveTUIApp(App):
                 task_events = crud.get_events(session, task_id=self.selected_task_id, limit=50)
                 for e in reversed(task_events):
                     time_str = format_datetime(e.created_at)
-                    task_log.write(f"[{time_str}] [cyan]{e.actor}[/cyan] [bold green]{e.event_type.upper()}[/bold green]: {e.details}")
+                    task_log.write(f"[#71717a][{time_str}][/#71717a] [#22d3ee]@{e.actor}[/#22d3ee] [bold #34d399]{e.event_type.upper()}[/bold #34d399]: [#e4e4e7]{e.details}[/#e4e4e7]")
         else:
-            task_log.write("No task selected.")
+            task_log.write("[italic #71717a]No task selected.[/italic #71717a]")
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         row_key = event.row_key.value
