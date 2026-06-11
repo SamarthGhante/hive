@@ -9,7 +9,7 @@ from rich.columns import Columns
 from rich.tree import Tree
 from rich import print as rprint
 from sqlmodel import select
-from hive.database import get_engine, init_db, get_db_path
+from hive.database import get_engine, init_db, get_db_path, get_session
 from hive.models import Task, Dependency, Comment, Decision, Memory, Event
 import hive.crud as crud
 from hive.utils import get_current_actor, format_priority, format_status, format_datetime
@@ -32,14 +32,6 @@ app.add_typer(decision_app, name="decision")
 app.add_typer(memory_app, name="memory")
 
 console = Console()
-
-def get_session():
-    from sqlmodel import Session
-    # Auto-initialize database on any command if it doesn't exist
-    db_path = get_db_path()
-    if not db_path.exists():
-        init_db()
-    return Session(get_engine())
 
 # --- Top Level Commands ---
 

@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
 from sqlmodel import SQLModel, create_engine, Session
@@ -51,8 +52,12 @@ def init_db() -> None:
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
 
+@contextmanager
 def get_session() -> Generator[Session, None, None]:
-    """Dependency generator for database sessions."""
+    """Context manager for database sessions."""
+    db_path = get_db_path()
+    if not db_path.exists():
+        init_db()
     engine = get_engine()
     with Session(engine) as session:
         yield session
