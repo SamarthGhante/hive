@@ -7,8 +7,6 @@ from pathlib import Path
 from sqlmodel import SQLModel
 
 TEST_CLI_DB_FILE = "test_cli_hive.db"
-# Force database to run in temporary file for testing
-os.environ["HIVE_DATABASE_URL"] = f"sqlite:///{TEST_CLI_DB_FILE}"
 
 from hive.main import app
 from hive.database import get_engine, init_db
@@ -18,11 +16,13 @@ runner = CliRunner()
 @pytest.fixture(autouse=True)
 def setup_db():
     # Setup
+    os.environ["HIVE_DATABASE_URL"] = f"sqlite:///{TEST_CLI_DB_FILE}"
     if Path(TEST_CLI_DB_FILE).exists():
         Path(TEST_CLI_DB_FILE).unlink()
     init_db()
     yield
     # Teardown
+    os.environ["HIVE_DATABASE_URL"] = f"sqlite:///{TEST_CLI_DB_FILE}"
     if Path(TEST_CLI_DB_FILE).exists():
         Path(TEST_CLI_DB_FILE).unlink()
 

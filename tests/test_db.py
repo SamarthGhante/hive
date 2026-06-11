@@ -4,8 +4,6 @@ from pathlib import Path
 from sqlmodel import Session, SQLModel
 
 TEST_DB_FILE = "test_hive.db"
-# Force database to run in temporary file for testing
-os.environ["HIVE_DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE}"
 
 from hive.database import get_engine, init_db
 import hive.crud as crud
@@ -13,6 +11,7 @@ import hive.crud as crud
 @pytest.fixture(name="session")
 def session_fixture():
     # Setup
+    os.environ["HIVE_DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE}"
     if Path(TEST_DB_FILE).exists():
         Path(TEST_DB_FILE).unlink()
     init_db()
@@ -20,6 +19,7 @@ def session_fixture():
     with Session(engine) as session:
         yield session
     # Teardown
+    os.environ["HIVE_DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE}"
     if Path(TEST_DB_FILE).exists():
         Path(TEST_DB_FILE).unlink()
 
