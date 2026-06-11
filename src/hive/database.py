@@ -47,7 +47,7 @@ def get_engine():
 def init_db() -> None:
     """Create all database tables."""
     # Ensure models are imported so SQLModel knows about them
-    from hive.models import Task, Dependency, Comment, Decision, Memory, Event
+    from hive.models import Task, Dependency, Comment, Decision, Memory, Event, Project
     
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
@@ -55,9 +55,7 @@ def init_db() -> None:
 @contextmanager
 def get_session() -> Generator[Session, None, None]:
     """Context manager for database sessions."""
-    db_path = get_db_path()
-    if not db_path.exists():
-        init_db()
+    init_db()
     engine = get_engine()
     with Session(engine) as session:
         yield session
