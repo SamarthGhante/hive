@@ -159,6 +159,7 @@ def task_list(
         
         status_colors = {
             "todo": "dim white",
+            "reopened": "bold red",
             "in_progress": "bold blue",
             "review": "bold yellow",
             "done": "bold green"
@@ -202,7 +203,7 @@ def task_update(
     task_id: int = typer.Argument(..., help="Task ID to update"),
     title: Optional[str] = typer.Option(None, "--title", "-t", help="Update title"),
     description: Optional[str] = typer.Option(None, "--desc", "-d", help="Update description"),
-    status: Optional[str] = typer.Option(None, "--status", "-s", help="Update status (todo, in_progress, review, done)"),
+    status: Optional[str] = typer.Option(None, "--status", "-s", help="Update status (todo, reopened, in_progress, review, done)"),
     priority: Optional[int] = typer.Option(None, "--priority", "-p", help="Update priority (0-4)"),
     progress: Optional[int] = typer.Option(None, "--progress", "-g", help="Update progress percentage (0-100)"),
     assignee: Optional[str] = typer.Option(None, "--assignee", "-a", help="Update assignee name"),
@@ -216,8 +217,8 @@ def task_update(
     if progress is not None and (progress < 0 or progress > 100):
         console.print("[red]Error: Progress must be between 0 and 100[/red]")
         raise typer.Exit(1)
-    if status is not None and status.lower() not in ["todo", "in_progress", "review", "done"]:
-        console.print("[red]Error: Status must be one of: todo, in_progress, review, done[/red]")
+    if status is not None and status.lower() not in ["todo", "reopened", "in_progress", "review", "done"]:
+        console.print("[red]Error: Status must be one of: todo, reopened, in_progress, review, done[/red]")
         raise typer.Exit(1)
     if task_type is not None and task_type.lower() not in ["feature", "bug", "issue", "chore"]:
         console.print("[red]Error: Type must be one of: feature, bug, issue, chore[/red]")
@@ -263,7 +264,7 @@ def task_show(task_id: int = typer.Argument(..., help="Task ID to show")):
         decisions = crud.get_decisions(session, task_id)
         
         priority_style = {0: "bold red", 1: "red", 2: "orange3", 3: "blue", 4: "dim white"}.get(task.priority, "white")
-        status_style = {"todo": "dim white", "in_progress": "bold blue", "review": "bold yellow", "done": "bold green"}.get(task.status, "white")
+        status_style = {"todo": "dim white", "reopened": "bold red", "in_progress": "bold blue", "review": "bold yellow", "done": "bold green"}.get(task.status, "white")
         type_style = {"feature": "bold green", "bug": "bold red", "issue": "bold yellow", "chore": "dim white"}.get(task.task_type.lower(), "white")
         
         details_text = (

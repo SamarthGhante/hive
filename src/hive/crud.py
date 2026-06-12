@@ -66,8 +66,8 @@ def claim_task(session: Session, task_id: int, assignee: str) -> Optional[Task]:
     
     old_assignee = task.assignee
     task.assignee = assignee
-    # If a task is claimed and was 'todo', it often transitions to 'in_progress'
-    if task.status == "todo":
+    # If a task is claimed and was 'todo' or 'reopened', it transitions to 'in_progress'
+    if task.status in ["todo", "reopened"]:
         task.status = "in_progress"
     task.updated_at = datetime.now(timezone.utc)
     

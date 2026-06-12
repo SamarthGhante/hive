@@ -43,10 +43,19 @@ Used to maintain the high-level scope and state of the project.
 ### Task Management Commands
 Break down work into granular tasks. First establish all tasks and their dependencies before writing code.
 - `hive task-add "Setup Database" --desc "Use SQLite" --type [feature|bug|issue|chore]`: Create a new task.
+  * **Guidelines and Examples for Task Types:**
+    * `feature`: For implementing new functional capabilities, user interfaces, endpoints, or modules.
+      * *Example:* `hive task-add "Add email verification flow" --desc "Send magic link via Resend API and verify token on redirect" --type feature`
+    * `bug`: For resolving unintended behaviors, crashes, validation failures, or incorrect state transitions.
+      * *Example:* `hive task-add "Fix DataTable cursor jumps on refresh" --desc "Ensure row highlight doesn't jump to row 0 during poll interval" --type bug`
+    * `issue`: For tracking user feedback, semantic issues, research tasks, security vulnerabilities, or performance investigations.
+      * *Example:* `hive task-add "Investigate API latency spikes" --desc "Analyze database queries and index coverage under load" --type issue`
+    * `chore`: For refactorings, updating dependency versions, adding/fixing tests, cleanup, or documentation updates.
+      * *Example:* `hive task-add "Migrate Pytest fixtures to conftest.py" --desc "Move reusable DB and CLI test configurations" --type chore`
 - `hive task-list`: List all tasks.
 - `hive task-update <TASK_ID> --claim --progress 50`: **(ALWAYS claim first before starting work)** Assign a task to yourself, mark it `in_progress`, and set progress to an approximate value.
   - **Best Practice for Large Tasks:** If the task is too large, keep updating the task progress regularly (e.g. at 25%, 50%, 75%) while still working on it, adding comments to document intermediate progress.
-- `hive task-update <TASK_ID> --status done --progress 100`: Mark the task as 100% done.
+- `hive task-update <TASK_ID> --status done --progress 100`: Mark the task as 100% done (only for absolute, self-contained setups).
 - `hive task-show <TASK_ID>`: View task dependencies, comments, and decisions.
 
 ### Dependencies
@@ -87,11 +96,21 @@ Follow this step-by-step loop for every task:
 4. **Execute:** Write code, run tests.
 5. **Update Frequently:** If a task is large, keep updating the task progress to approximate values and add comments regularly.
 6. **Record Decisions:** Use `hive log-decision` (or `hive edit-decision` to modify) if you make an important architectural choice.
-7. **Complete & Summarize:** Log a **detailed final comment** summarizing all changes made for the task, then mark the task complete: `hive task-update <TASK_ID> --status done --progress 100`.
+7. **Submit for Review & Summarize (Do NOT directly close tasks):**
+   When work for a task is complete:
+   - **Except for absolute, self-contained tasks** that require no human testing or verification (such as initial project setup, database schema migration that you verified, or basic config file generation), you **MUST NOT** directly mark the task as `done`.
+   - Instead, update the status to `review` and set the progress to `90%` (indicating it is ready for review).
+     * *Example:* `hive task-update <TASK_ID> --status review --progress 90`
+   - Ask the user to verify/test the changes and wait for their feedback.
+   - For absolute tasks, mark them complete: `hive task-update <TASK_ID> --status done --progress 100`.
+   - In both cases, **always log a detailed final comment** summarizing exactly what was implemented, changed, or tested under that task.
 8. **Project Sync:** On task completion, **always check if project metadata needs updating**. If it is a major change, update the project details, decisions, memories, or progress status (`hive status`), or at least add a project-level progress comment.
-9. **Refixing / Reclaiming Rules:**
-   - If the user reports that a completed task is still not fixed, **reclaim the last working task if related** (set status back to `in_progress` and progress < 100%).
-   - If the issue is unrelated, **always open a new task** and mark it as a fix (e.g. `--type bug` or `--type issue`).
+9. **Refixing / Reclaiming / Reopening Rules:**
+   - If the user reports that a completed or review task is still not fixed/implemented correctly:
+     - **Reopen/reclaim the task:** Transition the task's status back to `reopened` and progress to `0%` or `<100%`.
+       * *Example:* `hive task-update <TASK_ID> --status reopened --progress 0`
+     - Claim it to assign it to yourself and start work: `hive task-update <TASK_ID> --claim`
+   - If the user reports a new, unrelated problem, **always open a new task** with the correct type (`bug`, `issue`, etc.) and define its dependencies.
 10. **Repeat:** Move to the next task.
 
 ---
@@ -104,3 +123,16 @@ If you encounter any operational or system error with the HIVE CLI or its databa
    > "HIVE encountered an error: [Error details]. Would you like to retry the operation or continue working without HIVE tracking?"
 3. Proceed according to the user's choice.
 
+---
+
+## 5. Summary of Workflow & Guidelines
+
+| Step | Action | Status | Progress | Command Example |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Ingest** | Load latest project context | - | - | `hive learn` |
+| **2. Plan** | Add tasks with types/dependencies | `todo` | `0%` | `hive task-add "..." --type bug` |
+| **3. Claim** | Claim task before editing code | `in_progress` | `0%` | `hive task-update <TASK_ID> --claim` |
+| **4. Execute**| Implement code changes and tests | `in_progress` | `10%` - `80%` | `hive task-update <TASK_ID> --progress 50` |
+| **5. Review** | Submit for user testing (except setups) | `review` | `90%` | `hive task-update <TASK_ID> --status review --progress 90` |
+| **6. Finish** | Final completion (when verified) | `done` | `100%` | `hive task-update <TASK_ID> --status done --progress 100` |
+| **7. Reopen** | If verification fails or is rejected | `reopened` | `0%` | `hive task-update <TASK_ID> --status reopened --progress 0` |

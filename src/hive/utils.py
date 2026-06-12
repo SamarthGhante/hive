@@ -42,6 +42,7 @@ def format_status(status: str) -> str:
     """Format status string to a display-friendly tag."""
     mapping = {
         "todo": "Todo",
+        "reopened": "Reopened",
         "in_progress": "In Progress",
         "review": "Review",
         "done": "Completed"

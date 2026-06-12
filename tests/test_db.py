@@ -164,3 +164,20 @@ def test_project_comments(session: Session):
     comments = crud.get_comments(session, task_id=None)
     assert len(comments) == 1
     assert comments[0].content == "Project level comment."
+
+def test_reopen_task(session: Session):
+    task = crud.create_task(session, title="Reopen Test Task")
+    assert task.status == "todo"
+    
+    # Claim transitions to in_progress
+    crud.claim_task(session, task.id, "agent1")
+    assert task.status == "in_progress"
+    
+    # Reopen transitions to reopened and resets progress
+    crud.update_task(session, task.id, status="reopened", progress=0)
+    assert task.status == "reopened"
+    assert task.progress == 0
+    
+    # Re-claim from reopened transitions to in_progress
+    crud.claim_task(session, task.id, "agent2")
+    assert task.status == "in_progress"

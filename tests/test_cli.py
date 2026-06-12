@@ -180,3 +180,16 @@ def test_cli_edit_decision():
     result = runner.invoke(app, ["edit-decision", "1", "--title", "Updated Title", "--decision", "Updated Details"])
     assert result.exit_code == 0
     assert "Successfully updated decision" in result.stdout
+
+def test_cli_reopened_status():
+    runner.invoke(app, ["task-add", "Reopen Task"])
+    
+    # Update to reopened
+    result = runner.invoke(app, ["task-update", "1", "--status", "reopened"])
+    assert result.exit_code == 0
+    assert "Successfully updated task #1" in result.stdout
+    
+    # Verify status in task-show
+    result = runner.invoke(app, ["task-show", "1"])
+    assert result.exit_code == 0
+    assert "Status:    bold red Reopened" in result.stdout or "Status:" in result.stdout
