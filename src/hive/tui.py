@@ -519,13 +519,13 @@ class HiveTUIApp(App):
                 try:
                     row_idx = table.get_row_index(str(t.id))
                     # Row exists, update in-place to prevent resetting selection/highlight!
-                    table.update_cell_at(row_idx, 0, id_str)
-                    table.update_cell_at(row_idx, 1, title_str)
-                    table.update_cell_at(row_idx, 2, type_str)
-                    table.update_cell_at(row_idx, 3, status_str)
-                    table.update_cell_at(row_idx, 4, priority_str)
-                    table.update_cell_at(row_idx, 5, progress_str)
-                    table.update_cell_at(row_idx, 6, assignee_str)
+                    table.update_cell_at((row_idx, 0), id_str)
+                    table.update_cell_at((row_idx, 1), title_str)
+                    table.update_cell_at((row_idx, 2), type_str)
+                    table.update_cell_at((row_idx, 3), status_str)
+                    table.update_cell_at((row_idx, 4), priority_str)
+                    table.update_cell_at((row_idx, 5), progress_str)
+                    table.update_cell_at((row_idx, 6), assignee_str)
                 except Exception:
                     # Row does not exist, add it
                     table.add_row(
