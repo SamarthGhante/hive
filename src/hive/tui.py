@@ -517,7 +517,7 @@ class HiveTUIApp(App):
                 progress_str = f"[{progress_color}]{t.progress}%[/{progress_color}]"
                 
                 try:
-                    row_idx = table.find_row(str(t.id))
+                    row_idx = table.get_row_index(str(t.id))
                     # Row exists, update in-place to prevent resetting selection/highlight!
                     table.update_cell_at(row_idx, 0, id_str)
                     table.update_cell_at(row_idx, 1, title_str)
@@ -542,7 +542,7 @@ class HiveTUIApp(App):
             current_selected = self.selected_task_id
             if current_selected and any(t.id == current_selected for t in tasks):
                 try:
-                    target_row = table.find_row(str(current_selected))
+                    target_row = table.get_row_index(str(current_selected))
                     if table.cursor_row != target_row:
                         table.move_cursor(row=target_row)
                 except Exception:
