@@ -181,3 +181,22 @@ def test_reopen_task(session: Session):
     # Re-claim from reopened transitions to in_progress
     crud.claim_task(session, task.id, "agent2")
     assert task.status == "in_progress"
+
+def test_project_progress_appending(session: Session):
+    p = crud.get_project(session)
+    # Check default progress
+    assert p.progress == "No progress recorded yet." or p.progress is None
+    
+    # Update progress
+    p = crud.update_project(session, progress="Initial setup")
+    assert "Initial setup" in p.progress
+    
+    # Append progress
+    p = crud.update_project(session, progress="Phase 2")
+    assert "Initial setup" in p.progress
+    assert "Phase 2" in p.progress
+    
+    # Try updating with identical text (should do nothing)
+    old_prog = p.progress
+    p = crud.update_project(session, progress=old_prog)
+    assert p.progress == old_prog

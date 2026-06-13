@@ -444,9 +444,29 @@ def update_project(
     if overall_idea is not None and overall_idea != project.overall_idea:
         changes.append("overall idea updated")
         project.overall_idea = overall_idea
-    if progress is not None and progress != project.progress:
-        changes.append("progress updated")
-        project.progress = progress
+    if progress is not None:
+        progress_stripped = progress.strip()
+        if progress_stripped:
+            is_new = True
+            if project.progress:
+                existing_prog = project.progress.strip()
+                if progress_stripped == existing_prog:
+                    is_new = False
+                elif progress_stripped.startswith(existing_prog):
+                    new_suffix = progress_stripped[len(existing_prog):].strip()
+                    if new_suffix:
+                        progress_stripped = new_suffix
+                    else:
+                        is_new = False
+            
+            if is_new:
+                timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+                new_entry = f"[{timestamp}] {progress_stripped}"
+                if project.progress and project.progress != "No progress recorded yet.":
+                    project.progress = f"{project.progress}\n{new_entry}"
+                else:
+                    project.progress = new_entry
+                changes.append("progress updated")
         
     if changes:
         project.updated_at = datetime.now(timezone.utc)

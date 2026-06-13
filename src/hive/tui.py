@@ -346,7 +346,7 @@ class HiveTUIApp(App):
                                 yield Input(placeholder="Project Name (Enter to details)...", id="project-name-input")
                                 yield Input(placeholder="Details (Enter to overall idea)...", id="project-details-input")
                                 yield Input(placeholder="Overall Idea (Enter to progress)...", id="project-idea-input")
-                                yield Input(placeholder="Progress Summary (Enter to save)...", id="project-progress-input")
+                                yield Input(placeholder="Add new progress update log (Enter to save)...", id="project-progress-input")
                         
                         # Right Column
                         with Vertical(id="project-right-pane", classes="right-column"):
@@ -640,15 +640,13 @@ class HiveTUIApp(App):
             name_input.value = project.name
         if not details_input.value:
             details_input.value = project.details or ""
-        progress_input = self.query_one("#project-progress-input", Input)
         if not idea_input.value:
             idea_input.value = project.overall_idea or ""
-        if not progress_input.value:
-            progress_input.value = project.progress or ""
 
         comment_content = []
         for c in comments:
-            comment_content.append(f"[bold #60a5fa]@{c.author}[/] [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
+            task_tag = f" [#fbbf24](Task #{c.task_id})[/#fbbf24]" if c.task_id else ""
+            comment_content.append(f"[bold #60a5fa]@{c.author}[/]{task_tag} [#71717a]({format_datetime(c.created_at)})[/#71717a]\n[#e4e4e7]{c.content}[/#e4e4e7]\n[#323232]──────────────────────────────────────────────────[/#323232]")
         if not comment_content:
             comment_content.append("[italic #71717a]No project comments yet. Type in the form below to add one.[/italic #71717a]")
         
@@ -1004,6 +1002,7 @@ class HiveTUIApp(App):
             details = self.query_one("#project-details-input", Input).value.strip()
             idea = self.query_one("#project-idea-input", Input).value.strip()
             self.run_worker(self.async_update_project(name, details, idea, val), group="db_sync")
+            event.input.value = ""
             self.query_one("#project-name-input", Input).focus()
             
         # 5. Add Project Comment Form
